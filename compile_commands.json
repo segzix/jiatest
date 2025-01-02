@@ -1,0 +1,32 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-g",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "rdma/rdma_client.o",
+      "rdma/rdma_client.c"
+    ],
+    "directory": "/home/szx/tmpjia",
+    "file": "/home/szx/tmpjia/rdma/rdma_client.c",
+    "output": "/home/szx/tmpjia/rdma/rdma_client.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-g",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "rdma/rdma_server.o",
+      "rdma/rdma_server.c"
+    ],
+    "directory": "/home/szx/tmpjia",
+    "file": "/home/szx/tmpjia/rdma/rdma_server.c",
+    "output": "/home/szx/tmpjia/rdma/rdma_server.o"
+  }
+]
