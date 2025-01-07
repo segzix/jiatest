@@ -2,3 +2,4 @@
 *.d
 *.o
 compile_commands.json
+test
