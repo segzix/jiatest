@@ -8,10 +8,17 @@
 extern int snd_seq[Maxhosts];
 
 // these need to reconfiguration on another host
-const char *server_ip = "192.168.103.1";
-const char *client_ip = "192.168.103.2";
-int jia_pid = 0;
-int to_pid = 1;
+#ifdef MASTER
+    const char *server_ip = "192.168.103.1";
+    const char *client_ip = "192.168.103.2";
+    int jia_pid = 0;
+    int to_pid = 1;
+#else
+    const char *server_ip = "192.168.103.2";
+    const char *client_ip = "192.168.103.1";
+    int jia_pid = 1;
+    int to_pid = 0;
+#endif
 
 FILE *logfile;
 
