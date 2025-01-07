@@ -1,0 +1,105 @@
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[0] msg addr = 0x5580bd6ce830
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[1] msg addr = 0x5580bd6cf078
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[2] msg addr = 0x5580bd6cf8c0
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[3] msg addr = 0x5580bd6d0108
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[4] msg addr = 0x5580bd6d0950
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[5] msg addr = 0x5580bd6d1198
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[6] msg addr = 0x5580bd6d19e0
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[7] msg addr = 0x5580bd6d2228
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[8] msg addr = 0x5580bd6d2a70
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[9] msg addr = 0x5580bd6d32b8
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[10] msg addr = 0x5580bd6d3b00
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[11] msg addr = 0x5580bd6d4348
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[12] msg addr = 0x5580bd6d4b90
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[13] msg addr = 0x5580bd6d53d8
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[14] msg addr = 0x5580bd6d5c20
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[15] msg addr = 0x5580bd6d6468
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[0] msg addr = 0x5580bd6d6cc0
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[1] msg addr = 0x5580bd6d7508
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[2] msg addr = 0x5580bd6d7d50
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[3] msg addr = 0x5580bd6d8598
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[4] msg addr = 0x5580bd6d8de0
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[5] msg addr = 0x5580bd6d9628
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[6] msg addr = 0x5580bd6d9e70
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[7] msg addr = 0x5580bd6da6b8
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[8] msg addr = 0x5580bd6daf00
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[9] msg addr = 0x5580bd6db748
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[10] msg addr = 0x5580bd6dbf90
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[11] msg addr = 0x5580bd6dc7d8
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[12] msg addr = 0x5580bd6dd020
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[13] msg addr = 0x5580bd6dd868
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[14] msg addr = 0x5580bd6de0b0
+[INFO] [Thread  main ] (msg/msg_queue.c:46:init_msg_queue) msg_queue[15] msg addr = 0x5580bd6de8f8
+[INFO] [Thread  main ] (rdma/rdma_comm.c:198:init_comm_qp_context) Print send_mr
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d6cc0, length: 2116, handle: 1, lkey: 1342242865, rkey: 1342242865}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d7508, length: 2116, handle: 3, lkey: 1342243377, rkey: 1342243377}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d7d50, length: 2116, handle: 5, lkey: 1342243889, rkey: 1342243889}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d8598, length: 2116, handle: 7, lkey: 1342244401, rkey: 1342244401}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d8de0, length: 2116, handle: 9, lkey: 1342244913, rkey: 1342244913}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d9628, length: 2116, handle: 11, lkey: 1342245425, rkey: 1342245425}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d9e70, length: 2116, handle: 13, lkey: 1342245937, rkey: 1342245937}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6da6b8, length: 2116, handle: 15, lkey: 1342246449, rkey: 1342246449}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6daf00, length: 2116, handle: 17, lkey: 1342246961, rkey: 1342246961}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6db748, length: 2116, handle: 19, lkey: 1342247473, rkey: 1342247473}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6dbf90, length: 2116, handle: 21, lkey: 1342247985, rkey: 1342247985}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6dc7d8, length: 2116, handle: 23, lkey: 1342248497, rkey: 1342248497}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6dd020, length: 2116, handle: 25, lkey: 1342249009, rkey: 1342249009}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6dd868, length: 2116, handle: 27, lkey: 1342249521, rkey: 1342249521}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6de0b0, length: 2116, handle: 29, lkey: 1342250033, rkey: 1342250033}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6de8f8, length: 2116, handle: 31, lkey: 1342250545, rkey: 1342250545}
+[INFO] [Thread  main ] (rdma/rdma_comm.c:202:init_comm_qp_context) Print recv_mr
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6ce830, length: 2116, handle: 2, lkey: 1342243121, rkey: 1342243121}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6cf078, length: 2116, handle: 4, lkey: 1342243633, rkey: 1342243633}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6cf8c0, length: 2116, handle: 6, lkey: 1342244145, rkey: 1342244145}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d0108, length: 2116, handle: 8, lkey: 1342244657, rkey: 1342244657}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d0950, length: 2116, handle: 10, lkey: 1342245169, rkey: 1342245169}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d1198, length: 2116, handle: 12, lkey: 1342245681, rkey: 1342245681}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d19e0, length: 2116, handle: 14, lkey: 1342246193, rkey: 1342246193}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d2228, length: 2116, handle: 16, lkey: 1342246705, rkey: 1342246705}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d2a70, length: 2116, handle: 18, lkey: 1342247217, rkey: 1342247217}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d32b8, length: 2116, handle: 20, lkey: 1342247729, rkey: 1342247729}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d3b00, length: 2116, handle: 22, lkey: 1342248241, rkey: 1342248241}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d4348, length: 2116, handle: 24, lkey: 1342248753, rkey: 1342248753}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d4b90, length: 2116, handle: 26, lkey: 1342249265, rkey: 1342249265}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d53d8, length: 2116, handle: 28, lkey: 1342249777, rkey: 1342249777}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d5c20, length: 2116, handle: 30, lkey: 1342250289, rkey: 1342250289}
+[INFO] [Thread  main ] (include/tools.h:98:print_ibv_mr) {addr: 0x5580bd6d6468, length: 2116, handle: 32, lkey: 1342250801, rkey: 1342250801}
+[INFO] [Thread  main ] (rdma/rdma_comm.c:282:init_comm_qp_context) Local address: LID 0x0002, QPN 0x000311, PSN 0x000000, GID fe80000000000000:98f2b3ffffe153c2
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: pkDHTxmMR18N2l9
+[INFO] [Thread listen] (rdma/rdma_listen.c:40:post_recv) Post recv wr successfully
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[0] msg <pkDHTxmMR18N2l9> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: k88EmLgN7cCCTt9
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[1] msg <k88EmLgN7cCCTt9> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: rWksb1fEBw397vi
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[2] msg <rWksb1fEBw397vi> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: 5Ug1YHC3UAVUAoB
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[3] msg <5Ug1YHC3UAVUAoB> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: 9VYjCxYhzZSrWPc
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[4] msg <9VYjCxYhzZSrWPc> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: 5IuZAHeCAyATJA7
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[5] msg <5IuZAHeCAyATJA7> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: KAQghSS6yHTEyqR
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[6] msg <KAQghSS6yHTEyqR> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: Pja76aCbaANbTUb
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[7] msg <Pja76aCbaANbTUb> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:40:post_recv) Post recv wr successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: OdZf97vP1hVIlHw
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[8] msg <OdZf97vP1hVIlHw> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: 3UVRSQrSrFT4gmP
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[9] msg <3UVRSQrSrFT4gmP> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: 61qTUnOD3FlOMKV
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[10] msg <61qTUnOD3FlOMKV> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully
+[INFO] [Thread  main ] (src/main.c:65:generate_random_string) generate string: 8DoUS6i7OPDfHjI
+[INFO] [Thread client] (rdma/rdma_client.c:85:rdma_client) Send outqueue[11] msg <8DoUS6i7OPDfHjI> successfully
+[INFO] [Thread listen] (rdma/rdma_listen.c:78:post_recv) Recv mr consumed successfully

@@ -6,6 +6,7 @@
 #define Maxmsgsize 2048
 
 typedef struct jia_msg {
+    char gid_head[40];    // ud mode, this is the payload of gid
     unsigned int frompid; /* from pid */
     unsigned int topid;   /* to pid */
     unsigned int temp;    /* Useless (flag to indicate read or write request)*/

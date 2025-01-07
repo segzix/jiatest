@@ -5,6 +5,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <infiniband/verbs.h>
+#include <stdint.h>
 
 #define RETRYNUM 50 // when hosts increases, this number should increases too.
 pthread_t rdma_client_tid;
@@ -17,7 +18,7 @@ int seq = 0;
 
 void printmsg(jia_msg_t *msg);
 
-int post_send(jia_context_t *ctx) {
+int post_send(jia_context_t *ctx, jia_msg_t *msg_ptr) {
     /* step 1: init wr, sge, for rdma to send */
     struct ibv_sge sge = {.addr = (uint64_t)msg_ptr,
                           .length = sizeof(jia_msg_t),
@@ -38,7 +39,7 @@ int post_send(jia_context_t *ctx) {
         log_err("Failed to post send");
     }
 
-    /* step 3: check if we get ack from peer host */
+    /* step 3: check if we send the packet to fabric */
     int ne = ibv_poll_cq(ctx->send_cq, 1, &wc);
     if (ne < 0) {
         log_err("ibv_poll_cq failed");
@@ -72,15 +73,16 @@ void *rdma_client(void *arg) {
 
         /* step 2: send msg && ack */
         for (int retries_num = 0; retries_num < RETRYNUM; retries_num++) {
-            if (!post_send(&ctx)) {
+            if (!post_send(&ctx, msg_ptr)) {
                 success = true;
                 break;
             }
 #ifdef DOSTAT
             STATOP(jiastat.resendcnt++;)
 #endif
+            log_info(3, "Failed to send msg, will resend");
         }
-        log_info(3, "Send outqueue[%d] msg successfully", ctx.outqueue->head);
+        log_info(3, "Send outqueue[%d] msg <%s> successfully", ctx.outqueue->head, ctx.outqueue->queue[ctx.outqueue->head].msg.data);
 
         /* step 3: manage error */
         if (success) {

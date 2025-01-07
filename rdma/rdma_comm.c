@@ -5,6 +5,7 @@
 #include <infiniband/verbs.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -194,6 +195,15 @@ void init_comm_qp_context(struct jia_context *ctx) {
                                      sizeof(jia_msg_t), IBV_ACCESS_LOCAL_WRITE);
     }
 
+    log_info(3, "Print send_mr");
+    for(int i = 0; i < SIZE; i++) {
+        print_ibv_mr(ctx->send_mr[i]);
+    }
+    log_info(3, "Print recv_mr");
+    for(int i = 0; i < SIZE; i++) {
+        print_ibv_mr(ctx->recv_mr[i]);
+    }
+
     /* step 3: create completion queue */
     ctx->send_cq = ibv_create_cq(ctx->context, SIZE,
                                  NULL, ctx->send_channel, 0);
@@ -233,7 +243,7 @@ void init_comm_qp_context(struct jia_context *ctx) {
         attr.qp_state = IBV_QPS_INIT;
         attr.pkey_index = 0;
         attr.port_num = ctx->ib_port;
-        attr.qkey = 0x11111111;
+        attr.qkey = 0x11111111;     // send host need to use the same qkey (0x00000000: will accept all)
         if (ibv_modify_qp(ctx->qp, &attr,
                           IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT |
                               IBV_QP_QKEY)) {
@@ -278,28 +288,9 @@ void init_comm_qp_context(struct jia_context *ctx) {
              dest_info[jia_pid].gid.global.subnet_prefix,
              dest_info[jia_pid].gid.global.interface_id);
 
-    // create ah
+    // alloc ah vector space
     ctx->ah = (struct ibv_ah **)malloc(sizeof(struct ibv_ah *) *
                                        Maxhosts);
-    for (int i = 0; i < Maxhosts; i++) {
-        if (i == jia_pid) {
-            continue;
-        }
-        struct ibv_ah_attr attr = {.is_global = 0,
-                                   .dlid = dest_info[i].lid,
-                                   .sl = 0,
-                                   .src_path_bits = 0,
-                                   .port_num = ctx->ib_port};
-
-        if (dest_info[i].gid.global.interface_id) {
-            attr.is_global = 1;
-            attr.grh.hop_limit = 1;
-            attr.grh.dgid = dest_info[i].gid;
-            attr.grh.sgid_index = 0;
-        }
-
-        ctx->ah[i] = ibv_create_ah(ctx->pd, &attr);
-    }
 }
 
 void init_ack_qp_context(struct jia_context *ctx) {
@@ -401,6 +392,27 @@ int init_rdma_context(struct jia_context *ctx, int batching_num) {
 
     /* step 5: exchange QP's info with other hosts */
     exchange_dest_info();
+
+    /* step 6: construct dests' AH */
+    for (int i = 0; i < Maxhosts; i++) {
+        if (i == jia_pid) {
+            continue;
+        }
+        struct ibv_ah_attr attr = {.is_global = 0,
+                                   .dlid = (uint16_t)dest_info[i].lid,
+                                   .sl = 7,
+                                   .src_path_bits = 0,
+                                   .port_num = ctx->ib_port};
+
+        if (dest_info[i].gid.global.interface_id) {
+            attr.is_global = 1;
+            attr.grh.hop_limit = 1;
+            attr.grh.dgid = dest_info[i].gid;
+            attr.grh.sgid_index = 0;
+        }
+
+        ctx->ah[i] = ibv_create_ah(ctx->pd, &attr);
+    }
 
     return 0;
 }
