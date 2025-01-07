@@ -84,13 +84,19 @@ static const char *mainstr = "[Thread  main ]";
     }
 
 
-static int open_logfile(char *filename) {
+static inline int open_logfile(char *filename) {
     logfile = fopen(filename, "w+");
     if (logfile == NULL) {
         printf("Cannot open logfile %s\n", filename);
         return -1;
     }
     return 0;
+}
+
+
+static inline void print_ibv_mr(struct ibv_mr *mr) {
+    log_info(3, "{addr: %p, length: %zu, handle: %d, lkey: %d, rkey: %d}", \
+            mr->addr, mr->length, mr->handle, mr->lkey, mr->rkey);
 }
 
 #endif  /* TOOLS_H */

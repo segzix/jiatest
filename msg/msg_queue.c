@@ -43,6 +43,7 @@ int init_msg_queue(msg_queue_t *msg_queue, int size) {
     /** step 5:init slot's state */
     for (int i = 0; i < size; i++) {
         msg_queue->queue[i].state = SLOT_FREE;
+        log_info(3, "msg_queue[%d] msg addr = %p", i,&msg_queue->queue[i].msg);
     }
 
     return 0;

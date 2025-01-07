@@ -4,7 +4,7 @@
 #include <infiniband/verbs.h>
 #include <pthread.h>
 
-#define Maxhosts 16
+#define Maxhosts 2
 
 typedef struct jia_context {
 	struct ibv_context	*context;

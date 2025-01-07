@@ -12,7 +12,7 @@ extern pthread_cond_t cond_server;
 pthread_cond_t cond_listen = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t lock_listen = PTHREAD_MUTEX_INITIALIZER;
 static struct ibv_recv_wr *bad_wr = NULL;
-static struct ibv_wc wc;
+static struct ibv_wc wc[8];
 struct ibv_sge sge_list[20];
 struct ibv_recv_wr wr_list[50];
 int ack_send, ack_recv;
@@ -25,6 +25,7 @@ int post_recv() {
         sge_list[i].lkey = ctx.recv_mr[ctx.inqueue->tail]->lkey;
         wr_list[i].sg_list = &sge_list[i];
         wr_list[i].num_sge = 1;
+        wr_list[i].wr_id = ctx.inqueue->tail;   // use index as wr_id
         ctx.inqueue->tail = (ctx.inqueue->tail + 1) % ctx.inqueue->size;
     }
     for (int i = 0; i < ctx.batching_num - 1; i++) {
@@ -36,10 +37,30 @@ int post_recv() {
         log_err("Failed to post recv");
     }
 
+    log_info(3, "Post recv wr successfully");
+
+    if (ibv_req_notify_cq(ctx.recv_cq, 0)) {
+        log_err("Couldn't request CQ notification");
+    }
+
     /* step 3: check num_completions until we get ctx.batching_num wr */
     int num_completions = 0;
     while (num_completions < ctx.batching_num) {
-        int nc = ibv_poll_cq(ctx.recv_cq, 1, &wc);
+        int ret = ibv_get_cq_event(ctx.recv_channel, &ctx.recv_cq, (void **)&ctx.context);
+        if (ret) {
+            perror("ibv_get_cq_event failed");
+            break;
+        }
+
+        ibv_ack_cq_events(ctx.recv_cq, 1);
+
+        ret = ibv_req_notify_cq(ctx.recv_cq, 0);
+        if (ret) {
+            fprintf(stderr, "Failed to request CQ notification\n");
+            break;
+        } 
+
+        int nc = ibv_poll_cq(ctx.recv_cq, ctx.batching_num - num_completions, wc + num_completions);
 
         /* step 3.1: manage error */
         if (nc < 0) {
@@ -48,18 +69,21 @@ int post_recv() {
         } else if (nc == 0) {
             continue;
         } else {
-            ctx.inqueue->tail = (ctx.inqueue->tail + 1) % ctx.inqueue->size;
-            if (wc.status != IBV_WC_SUCCESS) {
-                log_err("Failed status %s (%d) for wr_id %d",
-                        ibv_wc_status_str(wc.status), wc.status, (int)wc.wr_id);
-                continue;
-            } else {
-                ctx.inqueue->queue[ctx.inqueue->tail].state = SLOT_BUSY;
+            // ctx.inqueue->tail = (ctx.inqueue->tail + 1) % ctx.inqueue->size;
+            for (int i = 0; i < nc; i++) {
+                if (wc[num_completions + i].status != IBV_WC_SUCCESS) {
+                    log_err("Failed status %s (%d) for wr_id %d",
+                        ibv_wc_status_str(wc[num_completions + i].status), wc[num_completions + i].status, (int)wc[num_completions + i].wr_id);
+                } else {
+                    log_info(3, "Recv mr consumed successfully");
+                    // use wc.wr_id to judge which recv_wr has been consumed successfully and change corresponding queue state
+                    ctx.inqueue->queue[(int)wc[num_completions + i].wr_id].state = SLOT_BUSY;
+                }
             }
         }
 
         /* step 3.2: update num_completions */
-        num_completions++;
+        num_completions += nc;
     }
     return 0;
 }

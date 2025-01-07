@@ -7,10 +7,11 @@
 
 extern int snd_seq[Maxhosts];
 
+// these need to reconfiguration on another host
 const char *server_ip = "192.168.103.1";
 const char *client_ip = "192.168.103.2";
-
 int jia_pid = 0;
+int to_pid = 1;
 
 FILE *logfile;
 
@@ -20,7 +21,12 @@ int move_msg_to_outqueue(jia_msg_t *msg, msg_queue_t *outqueue);
 int main()
 {
     int batching_num = 8;
-    open_logfile("jiajia.log");
+    if(open_logfile("jiajia.log")) {
+        log_err("Unable to open jiajia.log");
+        exit(-1);
+    }
+    setbuf(logfile, NULL);
+
     init_msg_queue(&inqueue, SIZE);
     init_msg_queue(&outqueue, SIZE);
 
@@ -32,17 +38,17 @@ int main()
 
     jia_msg_t msg;
     while(1) {
-        msg.frompid = 0;
-        msg.topid = 1;
+        msg.frompid = jia_pid;
+        msg.topid = to_pid;
         msg.temp = -1;
         msg.seqno = snd_seq[msg.topid];
         msg.index = 0;
         msg.scope = 0;
-        msg.size = 4;
+        msg.size = 16;
         generate_random_string((char *)msg.data, SIZE);
         
         move_msg_to_outqueue(&msg, &outqueue);
-        sleep(1);
+        sleep(10);
     }
 }
 
@@ -56,6 +62,7 @@ void generate_random_string(char *dest, size_t length) {
     }
 
     dest[length - 1] = '\0'; // 添加字符串结束符
+    log_info(3, "generate string: %s", dest);
 }
 
 int move_msg_to_outqueue(jia_msg_t *msg, msg_queue_t *outqueue) {

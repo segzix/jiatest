@@ -2,7 +2,7 @@
 CC = gcc
 
 # 编译选项
-CFLAGS = -Wall -g
+CFLAGS = -Wno-unused-variable -Wall -g
 
 LIBS = -libverbs -lpthread
 
@@ -31,6 +31,8 @@ TARGET = test
 # 依赖关系
 DEPS = $(SRCS:.c=.d)
 
+OTHERS = jiajia.log
+
 # 默认目标
 all: $(TARGET)
 
@@ -51,10 +53,13 @@ $(TARGET): $(OBJS)
 
 # 清理目标
 clean:
-	rm -f $(OBJS) $(DEPS) $(TARGET)
+	rm -f $(OBJS) $(DEPS) $(TARGET) $(OTHERS)
 
 # 安装目标
 install: $(TARGET)
 	# 安装步骤，比如复制可执行文件到指定目录
 	# cp $(TARGET) /usr/local/bin/
 
+# 生成编译数据库
+bear:
+	bear -- make
