@@ -4,8 +4,12 @@
 #include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <rdma/rdma_cma.h>
 
 extern int snd_seq[Maxhosts];
+
+// cm_id_array[i] is to used to communicate with host[i]
+struct rdma_cm_id cm_id_array[Maxhosts];
 
 // these need to reconfiguration on another host
 #ifdef MASTER
@@ -39,9 +43,10 @@ int main()
 
     init_rdma_context(&ctx, batching_num);
 
+    pthread_create(&rdma_listen_tid, NULL, rdma_listen, NULL);
     pthread_create(&rdma_client_tid, NULL, rdma_client, NULL);
     pthread_create(&rdma_server_tid, NULL, rdma_server, NULL);
-    pthread_create(&rdma_listen_tid, NULL, rdma_listen, NULL);
+
 
     jia_msg_t msg;
     while(1) {
