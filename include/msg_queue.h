@@ -39,12 +39,16 @@ typedef struct msg_queue {
     pthread_mutex_t   tail_lock;    // lock for tail
     volatile unsigned               head;         // head
     volatile unsigned               tail;         // tail
+    volatile unsigned               post;         // post recv point
 
     sem_t             busy_count;   // busy slot count
     sem_t             free_count;   // free slot count
     
     _Atomic volatile unsigned  busy_value;
     _Atomic volatile unsigned  free_value;
+
+    int flags[4];
+    pthread_mutex_t flag_lock;
 } msg_queue_t;
 
 

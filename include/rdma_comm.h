@@ -2,46 +2,45 @@
 #define RDMA_COMMON_H
 #include "msg_queue.h"
 #include <infiniband/verbs.h>
+#include <rdma/rdma_cma.h>
 #include <pthread.h>
 
 #define Maxhosts 2
+#define BatchingSize 8
+#define QueueSize 32
+#define BatchingSize 8
+#define QueueSize 32
+#define BatchingNum (QueueSize / BatchingSize)
+
+
+typedef struct rdma_connect {
+    struct rdma_cm_id *id;
+    struct ibv_mr **in_mr;
+    msg_queue_t *inqueue;
+} rdma_connect_t;
 
 typedef struct jia_context {
 	struct ibv_context	*context;
-	struct ibv_pd		*pd;
-	struct ibv_ah		**ah;
-
-	struct ibv_comp_channel *send_channel;
-    struct ibv_comp_channel *recv_channel;
-	struct ibv_mr		**send_mr;
-    struct ibv_mr       **recv_mr;
-	struct ibv_cq		*send_cq;
-    struct ibv_cq       *recv_cq;
-	struct ibv_qp		*qp;
-
-	struct ibv_comp_channel *ack_send_channel;
-    struct ibv_comp_channel *ack_recv_channel;
-	struct ibv_mr		*ack_send_mr;
-    struct ibv_mr       *ack_recv_mr;
-	struct ibv_cq		*ack_send_cq;
-    struct ibv_cq       *ack_recv_cq;
-	struct ibv_qp		*ack_qp;
 
 	// port related
     int			 			ib_port;	// ib port number
 	struct ibv_port_attr	portinfo;	// port information
 
+	// info data
 	int			 send_flags;        // describe send_wr's attributes {IBV_SEND_FENCE, IBV_SEND_SIGNALED, IBV_SEND_SOLICITED, IBV_SEND_INLINE, IBV_SEND_IP_CSUM}
     int          batching_num;      // post recv wr doorbell batching num
 	
+	// rdma connect
+	struct ibv_mr **out_mr;
     msg_queue_t *outqueue;
-    msg_queue_t *inqueue;
+	rdma_connect_t connect_array[Maxhosts];
 
     // connection parameters
     int          tcp_port;          	// tcp port number
     pthread_t    server_tid[Maxhosts];	// server thread id for eacho host
     pthread_t    client_tid[Maxhosts];	// client thread id for each host
 } jia_context_t;
+
 
 typedef struct jia_dest {
 	int lid;
@@ -74,17 +73,17 @@ void *tcp_client_thread(void *arg);
 /**
  * @brief rdma_listen -- rdma listen thread (post recv wr by doorbell batching)
  */
-void *rdma_listen(void *arg);
+void *rdma_listen_thread(void *arg);
 
 /**
  * @brief rdma_client -- rdma client thread (post send wr)
  */
-void *rdma_client(void *arg);
+void *rdma_client_thread(void *arg);
 
 /**
  * @brief rdma_server -- rdma server thread (handle msg)
  */
-void *rdma_server(void *arg);
+void *rdma_server_thread(void *arg);
 
 
 /**
