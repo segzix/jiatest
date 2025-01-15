@@ -327,6 +327,7 @@ void init_rdma_context(struct jia_context *ctx, int batching_num) {
     /* step 3: init rdma connection parameters */
     for (int i = 0; i < Maxhosts; i++) {
         ctx->connect_array[i].connected = false;
+        ctx->connect_array[i].inqueue = (msg_queue_t*)malloc(sizeof(msg_queue_t));
         init_msg_queue(ctx->connect_array[i].inqueue, QueueSize/2);
     }
 }
