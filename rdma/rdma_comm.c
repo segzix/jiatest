@@ -99,17 +99,17 @@ void *server_thread(void *arg) {
             // 设置 QP 属性，这里可以指定通信模式
             memset(&qp_attr, 0, sizeof(qp_attr));
             qp_attr.qp_context = NULL;
-            qp_attr.cap.max_send_wr = 10;
-            qp_attr.cap.max_recv_wr = 10;
+            qp_attr.cap.max_send_wr = QueueSize;
+            qp_attr.cap.max_recv_wr = QueueSize;
             qp_attr.cap.max_send_sge = 1;
             qp_attr.cap.max_recv_sge = 1;
             qp_attr.cap.max_inline_data = 88;
             qp_attr.qp_type = IBV_QPT_RC;
             // rdma_connect_t *cq_ctx = &(ctx.connect_array[client_id]);
-            qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16,
+            qp_attr.send_cq = ibv_create_cq(event->id->verbs, QueueSize,
                                             &(ctx.connect_array[client_id]),
                                             ctx.comp_channel, 0);
-            qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16,
+            qp_attr.recv_cq = ibv_create_cq(event->id->verbs, QueueSize,
                                             &(ctx.connect_array[client_id]),
                                             ctx.comp_channel, 0);
 
@@ -244,18 +244,18 @@ void *client_thread(void *arg) {
 
                 memset(&qp_attr, 0, sizeof(qp_attr));
                 qp_attr.qp_context = NULL;
-                qp_attr.cap.max_send_wr = 10;
-                qp_attr.cap.max_recv_wr = 10;
+                qp_attr.cap.max_send_wr = QueueSize;
+                qp_attr.cap.max_recv_wr = QueueSize;
                 qp_attr.cap.max_send_sge = 1;
                 qp_attr.cap.max_recv_sge = 1;
                 qp_attr.cap.max_inline_data = 64;
                 qp_attr.qp_type = IBV_QPT_RC;
                 // rdma_connect_t *cq_ctx = &(ctx.connect_array[target_host]);
                 qp_attr.send_cq = ibv_create_cq(
-                    event->id->verbs, 16, &(ctx.connect_array[target_host]),
+                    event->id->verbs, QueueSize, &(ctx.connect_array[target_host]),
                     ctx.comp_channel, 0);
                 qp_attr.recv_cq = ibv_create_cq(
-                    event->id->verbs, 16, &(ctx.connect_array[target_host]),
+                    event->id->verbs, QueueSize, &(ctx.connect_array[target_host]),
                     ctx.comp_channel, 0);
 
                 ibv_req_notify_cq(qp_attr.send_cq, 0);
@@ -367,9 +367,9 @@ void init_rdma_context(struct jia_context *ctx, int batching_num) {
         ctx->connect_array[i].connected = false;
         ctx->connect_array[i].inqueue =
             (msg_queue_t *)malloc(sizeof(msg_queue_t));
-        init_msg_queue(ctx->connect_array[i].inqueue, QueueSize / 2);
+        init_msg_queue(ctx->connect_array[i].inqueue, QueueSize);
         ctx->connect_array[i].in_mr =
-            (struct ibv_mr **)malloc(sizeof(struct ibv_mr *) * (QueueSize / 2));
+            (struct ibv_mr **)malloc(sizeof(struct ibv_mr *) * QueueSize);
     }
 }
 
@@ -383,7 +383,7 @@ void init_rdma_resource(struct jia_context *ctx) {
     for (int i = 0; i < Maxhosts; i++) {
         if (i == jia_pid)
             continue;
-        for (int j = 0; j < QueueSize / 2; j++) {
+        for (int j = 0; j < QueueSize; j++) {
             ctx->connect_array[i].in_mr[j] =
                 rdma_reg_msgs(&ctx->connect_array[i].id,
                               ctx->connect_array[i].inqueue->queue[j], 40960);
@@ -397,7 +397,7 @@ void free_rdma_resources(struct jia_context *ctx) {
     }
 
     for (int i = 0; i < Maxhosts; i++) {
-        for (int j = 0; j < QueueSize / 2; j++) {
+        for (int j = 0; j < QueueSize; j++) {
             ibv_dereg_mr(ctx->connect_array[i].in_mr[j]);
         }
     }

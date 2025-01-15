@@ -9,8 +9,8 @@
 #define SIZE 16
 
 #define Linesize 80
-static int verbose_log = 3;
-static int verbose_out = 3;
+static int verbose_log = 4;
+static int verbose_out = 4;
 extern FILE *logfile;
 extern pthread_t rdma_server_tid;
 extern pthread_t rdma_client_tid;

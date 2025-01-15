@@ -9,8 +9,6 @@
 #define Maxhosts 2
 #define BatchingSize 8
 #define QueueSize 32
-#define BatchingSize 8
-#define QueueSize 32
 #define BatchingNum (QueueSize / BatchingSize)
 
 typedef struct rdma_connect {
@@ -48,9 +46,6 @@ typedef struct jia_context {
 } jia_context_t;
 
 extern jia_context_t ctx;
-extern pthread_t rdma_client_tid;
-extern pthread_t rdma_listen_tid;
-extern pthread_t rdma_server_tid;
 
 /* function declaration */
 

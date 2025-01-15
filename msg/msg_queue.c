@@ -13,7 +13,7 @@ int init_msg_queue(msg_queue_t *msg_queue, int size) {
 
     /** step 1: allocate memory size for msg_queue */
     if (size <= 0) {
-        size = SIZE;
+        size = QueueSize;
     }
 
     msg_queue->queue = (unsigned char **)malloc(sizeof(unsigned char *) * size);

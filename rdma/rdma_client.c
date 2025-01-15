@@ -36,6 +36,8 @@ int post_send(rdma_connect_t *conn) {
         log_err("Failed to post send");
     }
 
+    log_info(4, "post send wr successfully!");
+
     /* step 3: check if we send the packet to fabric */
     while (1) {
         int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq, 1, &wc);
@@ -69,7 +71,7 @@ void *rdma_client_thread(void *arg) {
         // wait for busy slot
         sem_wait(&ctx.outqueue->busy_count);
         sem_getvalue(&ctx.outqueue->busy_count, &semvalue);
-        log_info(4, "enter client outqueue dequeue! busy_count value: conn->%d",
+        log_info(4, "enter client outqueue dequeue! busy_count value: %d",
                  semvalue);
 
         /* step 1: give seqno */
@@ -81,7 +83,7 @@ void *rdma_client_thread(void *arg) {
 
         /* step 3: update snd_seq and head ptr */
         snd_seq[msg_ptr->topid]++;
-        ctx.outqueue->head = (ctx.outqueue->head + 1) % SIZE;
+        ctx.outqueue->head = (ctx.outqueue->head + 1) % QueueSize;
 
         /* step 4: sem post and print value */
         sem_post(&ctx.outqueue->free_count);

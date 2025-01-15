@@ -14,8 +14,9 @@ static struct ibv_recv_wr *bad_wr = NULL;
 static struct ibv_wc wc;
 struct ibv_sge sge_list[QueueSize * Maxhosts];
 struct ibv_recv_wr wr_list[QueueSize * Maxhosts];
+extern int jia_pid;
 
-unsigned queue_size;
+unsigned queue_size = QueueSize;
 
 #define CQID(cq_ptr)                                                           \
     (((void *)cq_ptr - (void *)ctx.connect_array) / sizeof(rdma_connect_t));
@@ -34,7 +35,10 @@ static int check_flags(unsigned cqid) {
         /* step 2: update flags state */
         pthread_mutex_lock(&inqueue->flag_lock);
         inqueue->flags[Batchid] = 1;
-        inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
+        inqueue->post =
+            (inqueue->post + BatchingSize) %
+            pthread_create(&rdma_listen_tid, NULL, rdma_listen_thread, NULL);
+        ;
         pthread_mutex_unlock(&inqueue->flag_lock);
 
         /* step 3: update Batchid to test */
@@ -149,26 +153,31 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
 void init_recv_wr(struct ibv_mr **mr, unsigned index) {
     unsigned limit =
         min((BatchingSize), ((index / queue_size) + 1) * queue_size - index);
-    unsigned batchNum = (index % queue_size) / BatchingSize;
+    /* 在当前这个id对应的wr_list中的序号 */
+    unsigned rindex = (index % queue_size);
 
     for (int i = 0; i < limit; i++) {
-        sge_list[index + i].addr = (uint64_t)mr[batchNum + i]->addr;
-        sge_list[index + i].length = (uint32_t)mr[batchNum + i]->length;
-        sge_list[index + i].lkey = mr[batchNum + i]->lkey;
+        sge_list[index + i].addr = (uint64_t)mr[rindex + i]->addr;
+        sge_list[index + i].length = (uint32_t)mr[rindex + i]->length;
+        sge_list[index + i].lkey = mr[rindex + i]->lkey;
         /* now we link to the send work request */
         bzero(&wr_list[index + i], sizeof(struct ibv_recv_wr));
         wr_list[index + i].sg_list = &sge_list[index + i];
         wr_list[index + i].num_sge = 1;
     }
 
-    for (int i = 0; i < limit; i++) {
+    int i;
+    for (i = 0; i < limit-1; i++) {
         wr_list[index + i].next = &wr_list[index + i + 1];
     }
+    wr_list[index + i].next = NULL;
 }
 
 int init_listen_recv() {
     /* step 1: init wr, sge, for rdma to recv */
     for (int j = 0; j < Maxhosts; j++) {
+        if (j == jia_pid)
+            continue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
             // sge_list[i].addr =
             // (uint64_t)&ctx.inqueue->queue[ctx.inqueue->tail].msg;
@@ -186,9 +195,11 @@ int init_listen_recv() {
 
     /* step 2: loop until ibv_post_recv wr successfully */
     for (int j = 0; j < Maxhosts; j++) {
+        if (j == jia_pid)
+            continue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
-            while (
-                ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr)) {
+            while (ibv_post_recv(ctx.connect_array[j].id.qp,
+                                 &wr_list[i + j * queue_size], &bad_wr)) {
                 log_err("Failed to post recv");
             }
 
