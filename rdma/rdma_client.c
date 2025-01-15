@@ -38,7 +38,7 @@ int post_send(rdma_connect_t *conn) {
 
     /* step 3: check if we send the packet to fabric */
     while (1) {
-        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.send_cq, 1, &wc);
+        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq, 1, &wc);
         if (ne < 0) {
             log_err("ibv_poll_cq failed");
             return -1;

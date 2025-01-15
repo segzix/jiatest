@@ -64,8 +64,8 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
         }
 
         /* ensure cqid and inqueue*/
-        cqid = CQID(cq_ptr);
-        inqueue = ctx.connect_array[cqid].inqueue;
+        cqid = CQID(context);
+        inqueue = (*(rdma_connect_t *)context).inqueue;
 
         /* Request for more notifications. */
         ret = ibv_req_notify_cq(cq_ptr, 0);

@@ -92,8 +92,7 @@ void *server_thread(void *arg) {
 
             pthread_mutex_lock(&comp_channel_mutex);
             if (ctx.comp_channel == NULL)
-                ctx.comp_channel =
-                    ibv_create_comp_channel(event->id->verbs);
+                ctx.comp_channel = ibv_create_comp_channel(event->id->verbs);
             pthread_mutex_unlock(&comp_channel_mutex);
 
             // 设置 QP 属性，这里可以指定通信模式
@@ -105,10 +104,11 @@ void *server_thread(void *arg) {
             qp_attr.cap.max_recv_sge = 1;
             qp_attr.cap.max_inline_data = 88;
             qp_attr.qp_type = IBV_QPT_RC;
+            // rdma_connect_t *cq_ctx = &(ctx.connect_array[client_id]);
             qp_attr.send_cq =
-                ibv_create_cq(event->id->verbs, 16, NULL, ctx.comp_channel, 0);
+                ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[client_id]), ctx.comp_channel, 0);
             qp_attr.recv_cq =
-                ibv_create_cq(event->id->verbs, 16, NULL, ctx.comp_channel, 0);
+                ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[client_id]), ctx.comp_channel, 0);
 
             ibv_req_notify_cq(qp_attr.send_cq, 0);
             ibv_req_notify_cq(qp_attr.recv_cq, 0);
@@ -241,9 +241,10 @@ void *client_thread(void *arg) {
                 qp_attr.cap.max_recv_sge = 1;
                 qp_attr.cap.max_inline_data = 64;
                 qp_attr.qp_type = IBV_QPT_RC;
-                qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, NULL,
+                // rdma_connect_t *cq_ctx = &(ctx.connect_array[target_host]);
+                qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[target_host]),
                                                 ctx.comp_channel, 0);
-                qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, NULL,
+                qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[target_host]),
                                                 ctx.comp_channel, 0);
 
                 ibv_req_notify_cq(qp_attr.send_cq, 0);
@@ -298,12 +299,7 @@ void *client_thread(void *arg) {
                 ctx.connect_array[target_host].connected = true;
                 ctx.connect_array[target_host].id = *(event->id);
                 // 这里可以通过 event->param.conn.private_data 查看 server
-                // 返回的私有数据
-                printf("Connection setup with host %d\n",
-                       *(int *)event->param.conn.private_data);
-                goto cleanup;
-
-            case RDMA_CM_EVENT_CONNECT_ERROR:
+                // 返回的私有数据ctx.connect_array
             case RDMA_CM_EVENT_UNREACHABLE:
             case RDMA_CM_EVENT_DISCONNECTED:
                 goto cleanup;
@@ -316,13 +312,8 @@ void *client_thread(void *arg) {
         } // while(1)
 
     next_try:
-        if (retry_flag) {
-            if (id) {
-                rdma_destroy_id(id);
-                id = NULL;
-            }
-            continue;
-        }
+        if (retry_flag) {}
+        continue;
     } // while(retry_flag && retry_count < MAX_RETRY)
 
 cleanup:
