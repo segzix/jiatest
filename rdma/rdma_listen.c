@@ -14,7 +14,6 @@ static struct ibv_recv_wr *bad_wr = NULL;
 static struct ibv_wc wc;
 struct ibv_sge sge_list[QueueSize * Maxhosts];
 struct ibv_recv_wr wr_list[QueueSize * Maxhosts];
-struct ibv_comp_channel *cq_channel;
 
 unsigned queue_size;
 
@@ -322,7 +321,7 @@ void *rdma_listen_thread(void *arg) {
         log_err("init lisern recv error");
     }
 
-    post_recv(cq_channel);
+    post_recv(ctx.comp_channel);
 
     return NULL;
 }

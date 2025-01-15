@@ -23,8 +23,7 @@ typedef struct rdma_connect {
 typedef struct jia_context {
     struct ibv_context *context;
 	struct ibv_pd *pd;
-    struct ibv_comp_channel *send_comp_channel;
-    struct ibv_comp_channel *recv_comp_channel;
+    struct ibv_comp_channel *comp_channel;
 
     // port related
     int ib_port;                   // ib port number
