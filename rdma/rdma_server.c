@@ -11,6 +11,7 @@ pthread_cond_t cond_server = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t lock_server = PTHREAD_MUTEX_INITIALIZER;
 pthread_t rdma_server_tid;
 jia_msg_t msg;
+extern int jia_pid;
 
 extern rdma_connect_t connect_array[Maxhosts];
 
@@ -25,13 +26,16 @@ void *rdma_server_thread(void *arg) {
         for (int i = 0; i < Maxhosts; i = (i + 1) % Maxhosts) {
             rdma_connect_t *tmp_connect;
             msg_queue_t *inqueue;
+            if(i == jia_pid)
+                continue;
             if (atomic_load(&(ctx.connect_array[i].inqueue->busy_value)) != 0) {
                 tmp_connect = &ctx.connect_array[i];
                 inqueue = tmp_connect->inqueue;
                 /* step 1: update head point, busy_value and handle msg */
+                msg_handle((jia_msg_t *)(inqueue->queue[inqueue->head]));
                 inqueue->head = (inqueue->head + 1) % inqueue->size;
                 atomic_fetch_sub(&(inqueue->busy_value), 1);
-                msg_handle((jia_msg_t *)&(inqueue->queue[inqueue->head]));
+
 
                 /* step 2: update flags array */
                 if(!(inqueue->head % BatchingSize)){

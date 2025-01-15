@@ -36,9 +36,7 @@ static int check_flags(unsigned cqid) {
         pthread_mutex_lock(&inqueue->flag_lock);
         inqueue->flags[Batchid] = 1;
         inqueue->post =
-            (inqueue->post + BatchingSize) %
-            pthread_create(&rdma_listen_tid, NULL, rdma_listen_thread, NULL);
-        ;
+            (inqueue->post + BatchingSize) % QueueSize;
         pthread_mutex_unlock(&inqueue->flag_lock);
 
         /* step 3: update Batchid to test */
@@ -205,7 +203,7 @@ int init_listen_recv() {
 
             /** update flags from 0 to 1 */
             pthread_mutex_lock(&ctx.connect_array[j].inqueue->flag_lock);
-            ctx.connect_array[j].inqueue->flags[i] = 1;
+            ctx.connect_array[j].inqueue->flags[i / BatchingSize] = 1;
             pthread_mutex_unlock(&ctx.connect_array[j].inqueue->flag_lock);
         }
     }

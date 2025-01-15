@@ -42,7 +42,7 @@ $(TARGET): $(OBJS)
 
 # 生成目标文件
 %.o: %.c
-	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) -DMASTER $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(INCLUDE_DIR) $(LIBS) -c $< -o $@
 
 # 生成依赖文件
 %.d: %.c

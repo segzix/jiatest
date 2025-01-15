@@ -43,9 +43,10 @@ int main()
 
     init_rdma_resource(&ctx);
 
+    pthread_create(&rdma_listen_tid, NULL, rdma_listen_thread, NULL);
     pthread_create(&rdma_client_tid, NULL, rdma_client_thread, NULL);
     pthread_create(&rdma_server_tid, NULL, rdma_server_thread, NULL);
-    pthread_create(&rdma_listen_tid, NULL, rdma_listen_thread, NULL);
+
 
     jia_msg_t msg;
     while(1) {
@@ -107,7 +108,7 @@ void generate_random_string(char *dest, size_t length) {
     }
 
     dest[length - 1] = '\0'; // 添加字符串结束符
-    log_info(3, "generate string: %s", dest);
+    log_out(3, "generate string: %s", dest);
 }
 
 int move_msg_to_outqueue(jia_msg_t *msg, msg_queue_t *outqueue) {
