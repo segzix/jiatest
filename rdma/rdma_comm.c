@@ -25,6 +25,7 @@ extern const char *client_ip;
 int batching_num = 8;
 long start_port = 40000;
 pthread_mutex_t comp_channel_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t pd_mutex = PTHREAD_MUTEX_INITIALIZER;
 jia_context_t ctx;
 
 void *server_thread(void *arg) {
@@ -105,15 +106,23 @@ void *server_thread(void *arg) {
             qp_attr.cap.max_inline_data = 88;
             qp_attr.qp_type = IBV_QPT_RC;
             // rdma_connect_t *cq_ctx = &(ctx.connect_array[client_id]);
-            qp_attr.send_cq =
-                ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[client_id]), ctx.comp_channel, 0);
-            qp_attr.recv_cq =
-                ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[client_id]), ctx.comp_channel, 0);
+            qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16,
+                                            &(ctx.connect_array[client_id]),
+                                            ctx.comp_channel, 0);
+            qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16,
+                                            &(ctx.connect_array[client_id]),
+                                            ctx.comp_channel, 0);
 
             ibv_req_notify_cq(qp_attr.send_cq, 0);
             ibv_req_notify_cq(qp_attr.recv_cq, 0);
 
-            ret = rdma_create_qp(event->id, NULL, &qp_attr);
+            pthread_mutex_lock(&pd_mutex);
+            if (ctx.pd == NULL) {
+                ctx.pd = ibv_alloc_pd(event->id->verbs);
+            }
+            pthread_mutex_unlock(&pd_mutex);
+
+            ret = rdma_create_qp(event->id, ctx.pd, &qp_attr);
             if (!ret) {
                 // server 可将自己的想要传的私有数据传递给 client
                 memset(&conn_param, 0, sizeof(conn_param));
@@ -242,15 +251,23 @@ void *client_thread(void *arg) {
                 qp_attr.cap.max_inline_data = 64;
                 qp_attr.qp_type = IBV_QPT_RC;
                 // rdma_connect_t *cq_ctx = &(ctx.connect_array[target_host]);
-                qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[target_host]),
-                                                ctx.comp_channel, 0);
-                qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, &(ctx.connect_array[target_host]),
-                                                ctx.comp_channel, 0);
+                qp_attr.send_cq = ibv_create_cq(
+                    event->id->verbs, 16, &(ctx.connect_array[target_host]),
+                    ctx.comp_channel, 0);
+                qp_attr.recv_cq = ibv_create_cq(
+                    event->id->verbs, 16, &(ctx.connect_array[target_host]),
+                    ctx.comp_channel, 0);
 
                 ibv_req_notify_cq(qp_attr.send_cq, 0);
                 ibv_req_notify_cq(qp_attr.recv_cq, 0);
 
-                ret = rdma_create_qp(event->id, NULL, &qp_attr);
+                pthread_mutex_lock(&pd_mutex);
+                if (ctx.pd == NULL) {
+                    ctx.pd = ibv_alloc_pd(id->verbs);
+                }
+                pthread_mutex_unlock(&pd_mutex);
+
+                ret = rdma_create_qp(event->id, ctx.pd, &qp_attr);
                 if (!ret) {
                     memset(&conn_param, 0, sizeof(conn_param));
 
@@ -339,7 +356,6 @@ void init_rdma_context(struct jia_context *ctx, int batching_num) {
     }
 
     /* step 2: init ctx common parameters */
-    ctx->pd = ibv_alloc_pd(ctx->context);
     ctx->ib_port = 2;
     ctx->batching_num = batching_num;
     ctx->outqueue = &outqueue;
