@@ -23,7 +23,7 @@ extern int jia_pid;
 extern const char *server_ip;
 extern const char *client_ip;
 int batching_num = 8;
-long start_port = 22222;
+long start_port = 40000;
 
 jia_context_t ctx;
 
@@ -105,7 +105,7 @@ void *server_thread(void *arg) {
                 ibv_req_notify_cq(qp_attr.send_cq, 0);
                 ibv_req_notify_cq(qp_attr.recv_cq, 0);
 
-                ret = rdma_create_qp(event->id, ctx.pd, &qp_attr);
+                ret = rdma_create_qp(event->id, NULL, &qp_attr);
                 if (!ret) {
                     // server 可将自己的想要传的私有数据传递给 client
                     memset(&conn_param, 0, sizeof(conn_param));
@@ -227,7 +227,7 @@ void *client_thread(void *arg) {
                     ibv_req_notify_cq(qp_attr.send_cq, 0);
                     ibv_req_notify_cq(qp_attr.recv_cq, 0);                   
 
-                    ret = rdma_create_qp(event->id, ctx.pd, &qp_attr);
+                    ret = rdma_create_qp(event->id, NULL, &qp_attr);
                     if (!ret) {
                         memset(&conn_param, 0, sizeof(conn_param));
                         
@@ -329,6 +329,7 @@ void init_rdma_context(struct jia_context *ctx, int batching_num) {
         ctx->connect_array[i].connected = false;
         ctx->connect_array[i].inqueue = (msg_queue_t*)malloc(sizeof(msg_queue_t));
         init_msg_queue(ctx->connect_array[i].inqueue, QueueSize/2);
+        ctx->connect_array[i].in_mr = (struct ibv_mr **)malloc(sizeof(struct ibv_mr *) * (QueueSize/2));
     }
 }
 
@@ -339,6 +340,8 @@ void init_rdma_resource(struct jia_context *ctx) {
     }
 
     for (int i = 0; i < Maxhosts; i++) {
+        if (i == jia_pid)
+            continue;
         for (int j = 0; j < QueueSize/2; j++) {
             ctx->connect_array[i].in_mr[j] = rdma_reg_msgs(&ctx->connect_array[i].id, ctx->connect_array[i].inqueue->queue[j], 40960);
         }
