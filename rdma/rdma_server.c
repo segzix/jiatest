@@ -16,7 +16,7 @@ extern rdma_connect_t connect_array[Maxhosts];
 
 void msg_handle(jia_msg_t *msg);
 
-void *rdma_server(void *arg) {
+void *rdma_server_thread(void *arg) {
     while (1) {
         /* step 1: lock and enter inqueue to check if busy slot number is
          * greater than ctx.batching_num */
@@ -28,18 +28,16 @@ void *rdma_server(void *arg) {
             if (atomic_load(&(connect_array[i].inqueue->busy_value)) != 0) {
                 tmp_connect = &connect_array[i];
                 inqueue = tmp_connect->inqueue;
-                if (inqueue->queue[inqueue->head].state == SLOT_BUSY) {
-                    /* step 1: update head point, busy_value and handle msg */
-                    inqueue->head = (inqueue->head + 1) % inqueue->size;
-                    atomic_fetch_sub(&(inqueue->busy_value), 1);
-                    msg_handle(&(inqueue->queue[inqueue->head].msg));
+                /* step 1: update head point, busy_value and handle msg */
+                inqueue->head = (inqueue->head + 1) % inqueue->size;
+                atomic_fetch_sub(&(inqueue->busy_value), 1);
+                msg_handle((jia_msg_t *)&(inqueue->queue[inqueue->head]));
 
-                    /* step 2: update flags array */
-                    if(!(inqueue->head % BatchingSize)){
-                        pthread_mutex_lock(&inqueue->flag_lock);
-                        inqueue->flags[(inqueue->head / BatchingSize)-1] = 1;
-                        pthread_mutex_unlock(&inqueue->flag_lock);
-                    }
+                /* step 2: update flags array */
+                if(!(inqueue->head % BatchingSize)){
+                    pthread_mutex_lock(&inqueue->flag_lock);
+                    inqueue->flags[(inqueue->head / BatchingSize)-1] = 1;
+                    pthread_mutex_unlock(&inqueue->flag_lock);
                 }
             }
         }

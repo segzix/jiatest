@@ -3,10 +3,40 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define Maxmsgsize 2048
+#define Maxmsgsize 40928
+
+typedef enum {
+    DIFF,
+    DIFFGRANT,
+    GETP,
+    GETPGRANT,
+    ACQ,
+    ACQGRANT,
+    INVLD,
+    BARR,
+    BARRGRANT,
+    REL,
+    WTNT,
+    JIAEXIT,
+    WAIT,
+    WAITGRANT,
+    STAT,
+    STATGRANT,
+    ERRMSG,
+    SETCV,
+    RESETCV,
+    WAITCV,
+    CVGRANT,
+    MSGBODY,
+    MSGTAIL,
+    LOADREQ,
+    LOADGRANT,
+    BCAST = 100,
+} msg_op_t;
+
 
 typedef struct jia_msg {
-    char gid_head[40];    // ud mode, this is the payload of gid
+    msg_op_t     op;      /* msg operation type */
     unsigned int frompid; /* from pid */
     unsigned int topid;   /* to pid */
     unsigned int temp;    /* Useless (flag to indicate read or write request)*/
@@ -19,20 +49,20 @@ typedef struct jia_msg {
 } jia_msg_t;
 
 
-typedef enum {
-    SLOT_FREE = 0,  // slot is free
-    SLOT_BUSY = 1,  // slot is busy
-} slot_state_t;
+// typedef enum {
+//     SLOT_FREE = 0,  // slot is free
+//     SLOT_BUSY = 1,  // slot is busy
+// } slot_state_t;
 
 
-typedef struct slot {
-    jia_msg_t msg;
-    _Atomic volatile slot_state_t state;
-    //pthread_mutex_t lock;
-} slot_t;
+// typedef struct slot {
+//     jia_msg_t msg;
+//     _Atomic volatile slot_state_t state;
+//     //pthread_mutex_t lock;
+// } slot_t;
 
 typedef struct msg_queue {
-    slot_t *queue;    // msg queue
+    unsigned char **queue;      // msg queue
     int               size;     // size of queue(must be power of 2)
 
     pthread_mutex_t   head_lock;    // lock for head
@@ -60,7 +90,7 @@ extern msg_queue_t outqueue;
  * @brief init_msg_queue - initialize msg queue with specified size
  * 
  * @param queue msg queue
- * @param size if size < 0, use default size (i.e. system_setting.msg_queue_size)
+ * @param size if size = 0, use default size (i.e. system_setting.msg_queue_size)
  * @return int 0 if success, -1 if failed
  */
 int init_msg_queue(msg_queue_t *queue, int size);
@@ -84,5 +114,10 @@ int enqueue(msg_queue_t *queue, jia_msg_t *msg);
  */
 int dequeue(msg_queue_t *queue, jia_msg_t *msg);
 
-
+/**
+ * @brief free_msg_queue -- free the resources allocated for msg_queue
+ * 
+ * @param msg_queue 
+ */
+void free_msg_queue(msg_queue_t *msg_queue);
 #endif

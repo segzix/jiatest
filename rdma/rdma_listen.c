@@ -189,7 +189,7 @@ int init_listen_recv() {
     for (int j = 0; j < Maxhosts; j++) {
         for (int i = 0; i < queue_size; i += BatchingSize) {
             while (
-                ibv_post_recv(ctx.connect_array[j].id->qp, &wr_list[i + j * queue_size], &bad_wr)) {
+                ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr)) {
                 log_err("Failed to post recv");
             }
 

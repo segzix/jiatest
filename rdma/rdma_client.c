@@ -7,8 +7,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-
-#define RETRYNUM 50 // when hosts increases, this number should increases too.
 pthread_t rdma_client_tid;
 static struct ibv_wc wc;
 static struct ibv_send_wr *bad_wr;
@@ -28,17 +26,19 @@ int post_send(rdma_connect_t *conn) {
         .wr_id = seq,
         .sg_list = &sge,
         .num_sge = 1,
+        .next = NULL,
         .opcode = IBV_WR_SEND,
         .send_flags = IBV_SEND_SIGNALED,};
 
     /* step 2: loop until ibv_post_send wr successfully */
-    while (ibv_post_send(conn->id->qp, &wr, &bad_wr)) {
+    jia_msg_t *msg_ptr = (jia_msg_t *)ctx.outqueue->queue[ctx.outqueue->head];
+    while (ibv_post_send(ctx.connect_array[msg_ptr->topid].id.qp, &wr, &bad_wr)) {
         log_err("Failed to post send");
     }
 
     /* step 3: check if we send the packet to fabric */
     while (1) {
-        int ne = ibv_poll_cq(conn->id->send_cq, 1, &wc);
+        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.send_cq, 1, &wc);
         if (ne < 0) {
             log_err("ibv_poll_cq failed");
             return -1;
@@ -59,7 +59,7 @@ int post_send(rdma_connect_t *conn) {
     return 0;
 }
 
-void *rdma_client(void *arg) {
+void *rdma_client_thread(void *arg) {
     while (1) {
         /* step 0: get sem value to print */
         int semvalue;
@@ -73,7 +73,7 @@ void *rdma_client(void *arg) {
                  semvalue);
 
         /* step 1: give seqno */
-        msg_ptr = &(ctx.outqueue->queue[ctx.outqueue->head].msg);
+        msg_ptr = (jia_msg_t *)&(ctx.outqueue->queue[ctx.outqueue->head]);
         msg_ptr->seqno = snd_seq[msg_ptr->topid];
 
         /* step 2: post send mr */
