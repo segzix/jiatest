@@ -320,6 +320,7 @@ void init_rdma_context(struct jia_context *ctx, int batching_num) {
     ctx->pd = ibv_alloc_pd(ctx->context);
     ctx->ib_port = 2;
     ctx->batching_num = batching_num;
+    ctx->outqueue = &outqueue;
 
     init_msg_queue(ctx->outqueue, QueueSize);
 

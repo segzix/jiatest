@@ -194,9 +194,9 @@ int init_listen_recv() {
             }
 
             /** update flags from 0 to 1 */
-            pthread_mutex_lock(&inqueue.flag_lock);
-            inqueue.flags[i] = 1;
-            pthread_mutex_unlock(&inqueue.flag_lock);
+            pthread_mutex_lock(&ctx.connect_array[j].inqueue->flag_lock);
+            ctx.connect_array[j].inqueue->flags[i] = 1;
+            pthread_mutex_unlock(&ctx.connect_array[j].inqueue->flag_lock);
         }
     }
 

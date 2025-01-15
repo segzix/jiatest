@@ -81,10 +81,7 @@ typedef struct msg_queue {
     pthread_mutex_t flag_lock;
 } msg_queue_t;
 
-
-extern msg_queue_t inqueue;
 extern msg_queue_t outqueue;
-
 
 /**
  * @brief init_msg_queue - initialize msg queue with specified size

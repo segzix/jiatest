@@ -35,7 +35,7 @@ typedef struct jia_context {
     int batching_num; // post recv wr doorbell batching num
 
     // rdma connect
-	msg_queue_t *outqueue;
+	msg_queue_t   *outqueue;
     struct ibv_mr *out_mr[QueueSize];
     rdma_connect_t connect_array[Maxhosts];
 

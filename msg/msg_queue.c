@@ -6,7 +6,6 @@
 
 #define PAGESIZE 4096
 
-msg_queue_t inqueue;
 msg_queue_t outqueue;
 
 int init_msg_queue(msg_queue_t *msg_queue, int size) {
