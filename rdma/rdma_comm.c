@@ -35,7 +35,7 @@ void *server_thread(void *arg) {
     struct rdma_cm_event *event = NULL;
     struct ibv_qp_init_attr qp_attr;
     struct rdma_conn_param conn_param;  // 在 rdma_accept 时传递给客户端的 conn param 
-    struct ibv_comp_channel *io_completion_channel;
+    // struct ibv_comp_channel *io_completion_channel;
     int ret;
     int completion_num = 0;     // 已建连的数目
     int client_id;              // 用于暂存发起连接的客户端标识
@@ -88,7 +88,7 @@ void *server_thread(void *arg) {
                 // 测试是否收到
                 printf("Received Connect Request from host %d\n", client_id);
 
-                io_completion_channel = ibv_create_comp_channel(event->id->verbs);
+                // io_completion_channel = ibv_create_comp_channel(event->id->verbs);
 
                 // 设置 QP 属性，这里可以指定通信模式
                 memset(&qp_attr, 0, sizeof(qp_attr));
@@ -99,8 +99,8 @@ void *server_thread(void *arg) {
                 qp_attr.cap.max_recv_sge = 1;
                 qp_attr.cap.max_inline_data = 88;
                 qp_attr.qp_type = IBV_QPT_RC;
-                qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, NULL, io_completion_channel, 0);
-                qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, NULL, io_completion_channel, 0);
+                qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, NULL, ctx.send_comp_channel, 0);
+                qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, NULL, ctx.recv_comp_channel, 0);
 
                 ibv_req_notify_cq(qp_attr.send_cq, 0);
                 ibv_req_notify_cq(qp_attr.recv_cq, 0);
@@ -164,7 +164,7 @@ void *client_thread(void *arg) {
     struct rdma_cm_event *event = NULL;
     struct ibv_qp_init_attr qp_attr;
     struct rdma_conn_param conn_param;
-    struct ibv_comp_channel *io_completion_channel;
+    // struct ibv_comp_channel *io_completion_channel;
 
     int ret;
     bool retry_flag = true;
@@ -211,7 +211,7 @@ void *client_thread(void *arg) {
 
                 case RDMA_CM_EVENT_ROUTE_RESOLVED:
 
-                    io_completion_channel = ibv_create_comp_channel(event->id->verbs);
+                    // io_completion_channel = ibv_create_comp_channel(event->id->verbs);
 
                     memset(&qp_attr, 0, sizeof(qp_attr));
                     qp_attr.qp_context = NULL;
@@ -221,8 +221,8 @@ void *client_thread(void *arg) {
                     qp_attr.cap.max_recv_sge = 1;
                     qp_attr.cap.max_inline_data = 64;
                     qp_attr.qp_type = IBV_QPT_RC;
-                    qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, NULL, io_completion_channel, 0);
-                    qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, NULL, io_completion_channel, 0);
+                    qp_attr.send_cq = ibv_create_cq(event->id->verbs, 16, NULL, ctx.send_comp_channel, 0);
+                    qp_attr.recv_cq = ibv_create_cq(event->id->verbs, 16, NULL, ctx.recv_comp_channel, 0);
 
                     ibv_req_notify_cq(qp_attr.send_cq, 0);
                     ibv_req_notify_cq(qp_attr.recv_cq, 0);                   
@@ -318,6 +318,8 @@ void init_rdma_context(struct jia_context *ctx, int batching_num) {
 
     /* step 2: init ctx common parameters */
     ctx->pd = ibv_alloc_pd(ctx->context);
+    ctx->send_comp_channel = ibv_create_comp_channel(ctx->context);
+    ctx->recv_comp_channel = ibv_create_comp_channel(ctx->context);
     ctx->ib_port = 2;
     ctx->batching_num = batching_num;
     ctx->outqueue = &outqueue;

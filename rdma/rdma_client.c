@@ -73,7 +73,7 @@ void *rdma_client_thread(void *arg) {
                  semvalue);
 
         /* step 1: give seqno */
-        msg_ptr = (jia_msg_t *)&(ctx.outqueue->queue[ctx.outqueue->head]);
+        msg_ptr = (jia_msg_t *)(ctx.outqueue->queue[ctx.outqueue->head]);
         msg_ptr->seqno = snd_seq[msg_ptr->topid];
 
         /* step 2: post send mr */
