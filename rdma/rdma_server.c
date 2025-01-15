@@ -36,7 +36,6 @@ void *rdma_server_thread(void *arg) {
                 inqueue->head = (inqueue->head + 1) % inqueue->size;
                 atomic_fetch_sub(&(inqueue->busy_value), 1);
 
-
                 /* step 2: update flags array */
                 if(!(inqueue->head % BatchingSize)){
                     pthread_mutex_lock(&inqueue->flag_lock);
