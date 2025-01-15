@@ -4,7 +4,7 @@ CC = gcc
 # 编译选项
 CFLAGS = -Wno-unused-variable -Wall -g
 
-LIBS = -libverbs -lpthread
+LIBS = -libverbs -lrdmacm -lpthread
 
 # 头文件目录
 INCLUDE_DIR = include

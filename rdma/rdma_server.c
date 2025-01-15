@@ -25,8 +25,8 @@ void *rdma_server_thread(void *arg) {
         for (int i = 0; i < Maxhosts; i = (i + 1) % Maxhosts) {
             rdma_connect_t *tmp_connect;
             msg_queue_t *inqueue;
-            if (atomic_load(&(connect_array[i].inqueue->busy_value)) != 0) {
-                tmp_connect = &connect_array[i];
+            if (atomic_load(&(ctx.connect_array[i].inqueue->busy_value)) != 0) {
+                tmp_connect = &ctx.connect_array[i];
                 inqueue = tmp_connect->inqueue;
                 /* step 1: update head point, busy_value and handle msg */
                 inqueue->head = (inqueue->head + 1) % inqueue->size;
