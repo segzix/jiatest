@@ -148,6 +148,7 @@ void init_recv_wr(struct ibv_mr **mr, unsigned index) {
     /* 在当前这个id对应的wr_list中的序号 */
     unsigned rindex = (index % queue_size);
 
+    /* step 1: init sge_list and wr_list */
     for (int i = 0; i < limit; i++) {
         sge_list[index + i].addr = (uint64_t)mr[rindex + i]->addr;
         sge_list[index + i].length = (uint32_t)mr[rindex + i]->length;
@@ -158,6 +159,7 @@ void init_recv_wr(struct ibv_mr **mr, unsigned index) {
         wr_list[index + i].num_sge = 1;
     }
 
+    /* step 2: make wr_list link array */
     int i;
     for (i = 0; i < limit - 1; i++) {
         wr_list[index + i].next = &wr_list[index + i + 1];
@@ -171,18 +173,11 @@ int init_listen_recv() {
         if (j == jia_pid)
             continue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
-            // sge_list[i].addr =
-            // (uint64_t)&ctx.inqueue->queue[ctx.inqueue->tail].msg;
-            // sge_list[i].length = sizeof(jia_msg_t);
-            // sge_list[i].lkey = ctx.recv_mr[ctx.inqueue->tail]->lkey;
-            // wr_list[i].sg_list = &sge_list[i];
-            // wr_list[i].num_sge = 1;
-            // wr_list[i].wr_id = ctx.inqueue->tail;   // use index as wr_id
             init_recv_wr(ctx.connect_array[j].in_mr, j * queue_size + i);
             ctx.connect_array[j].inqueue->tail =
                 (ctx.connect_array[j].inqueue->tail + 1) % ctx.connect_array[j].inqueue->size;
         }
-    }
+    } 
 
     /* step 2: loop until ibv_post_recv wr successfully */
     for (int j = 0; j < Maxhosts; j++) {
@@ -194,7 +189,7 @@ int init_listen_recv() {
                 log_err("Failed to post recv");
             }
 
-            /** update flags from 0 to 1 */
+            /* update flags from 0 to 1 */
             pthread_mutex_lock(&ctx.connect_array[j].inqueue->flag_lock);
             ctx.connect_array[j].inqueue->flags[i / BatchingSize] = 1;
             pthread_mutex_unlock(&ctx.connect_array[j].inqueue->flag_lock);

@@ -24,14 +24,15 @@ void *rdma_server_thread(void *arg) {
         // pthread_mutex_lock(&lock_server);
 
         for (int i = 0; i < Maxhosts; i = (i + 1) % Maxhosts) {
-            rdma_connect_t *tmp_connect;
-            msg_queue_t *inqueue;
+            /* get connect and inqueue */
+            rdma_connect_t *tmp_connect = &ctx.connect_array[i];
+            msg_queue_t *inqueue = tmp_connect->inqueue;
+
             if(i == jia_pid)
                 continue;
-            if (atomic_load(&(ctx.connect_array[i].inqueue->busy_value)) != 0) {
-                tmp_connect = &ctx.connect_array[i];
-                inqueue = tmp_connect->inqueue;
-                /* step 1: update head point, busy_value and handle msg */
+            if (atomic_load(&(ctx.connect_array[i].inqueue->busy_value)) > 0) {
+
+                /* step 1: handle msg and update head point, busy_value */
                 msg_handle((jia_msg_t *)(inqueue->queue[inqueue->head]));
                 inqueue->head = (inqueue->head + 1) % inqueue->size;
                 atomic_fetch_sub(&(inqueue->busy_value), 1);
