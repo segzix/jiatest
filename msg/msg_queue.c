@@ -37,13 +37,15 @@ int init_msg_queue(msg_queue_t *msg_queue, int size) {
     msg_queue->size = size;
     msg_queue->head = 0;
     msg_queue->tail = 0;
+    msg_queue->post = 0;
     atomic_init(&msg_queue->busy_value, 0);
+    atomic_init(&msg_queue->post_value, 0);
     atomic_init(&msg_queue->free_value, size);
 
     /** step 4: initialize head mutex and tail mutex and flag_lock used to update flags */
     if (pthread_mutex_init(&(msg_queue->head_lock), NULL) != 0 ||
         pthread_mutex_init(&(msg_queue->tail_lock), NULL) != 0 ||
-        pthread_mutex_init(&(msg_queue->flag_lock), NULL) != 0) {
+        pthread_mutex_init(&(msg_queue->post_lock), NULL) != 0) {
         perror("msg_queue mutex init");
         goto mutex_fail;
     }
@@ -55,18 +57,12 @@ int init_msg_queue(msg_queue_t *msg_queue, int size) {
         goto sem_fail;
     }
 
-    /** step 6: initialize msg_queue flags and post */
-    for (int i = 0; i < BatchingNum; i++) {
-        msg_queue->flags[i] = 0;
-    }
-    msg_queue->post = 0;
-
     return 0;
 
 sem_fail:
     pthread_mutex_destroy(&(msg_queue->head_lock));
     pthread_mutex_destroy(&(msg_queue->tail_lock));
-    pthread_mutex_destroy(&(msg_queue->flag_lock));
+    pthread_mutex_destroy(&(msg_queue->post_lock));
 mutex_fail:
     free(msg_queue->queue);
 
@@ -174,7 +170,7 @@ void free_msg_queue(msg_queue_t *msg_queue) {
     // destory head mutex and tail mutex
     pthread_mutex_destroy(&(msg_queue->head_lock));
     pthread_mutex_destroy(&(msg_queue->tail_lock));
-    pthread_mutex_destroy(&(msg_queue->flag_lock));
+    pthread_mutex_destroy(&(msg_queue->post_lock));
 
     // free the queue space
     for (int i = 0; i < msg_queue->size; i++) {

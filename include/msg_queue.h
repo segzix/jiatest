@@ -53,6 +53,7 @@ typedef struct msg_queue {
 
     pthread_mutex_t head_lock; // lock for head
     pthread_mutex_t tail_lock; // lock for tail
+    pthread_mutex_t post_lock; // lock for post
     volatile unsigned head;    // head
     volatile unsigned tail;    // tail
     volatile unsigned post;    // post recv point
@@ -62,9 +63,10 @@ typedef struct msg_queue {
 
     _Atomic volatile unsigned busy_value;
     _Atomic volatile unsigned free_value;
+    _Atomic volatile unsigned post_value;
 
-    int flags[4];
-    pthread_mutex_t flag_lock;
+    // int flags[4];
+    // pthread_mutex_t flag_lock;
 } msg_queue_t;
 
 extern msg_queue_t outqueue;

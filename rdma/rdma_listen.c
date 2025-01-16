@@ -23,21 +23,34 @@ unsigned queue_size = QueueSize;
 static int check_flags(unsigned cqid) {
     msg_queue_t *inqueue = ctx.connect_array[cqid].inqueue;
 
-    /* loop until inqueue->flags[Batchid].state != 2(post recv all) */
-    unsigned Batchid = inqueue->post / BatchingSize;
-    while (inqueue->flags[Batchid] == 2) {
-        /* step 1: init new post recv */
+    if(atomic_load(&(inqueue->free_value)) >= BatchingSize){
+        /* step 1: new BatchingSize post recv */
         init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
+        ibv_post_recv(ctx.connect_array[cqid].id.qp, &wr_list[inqueue->post + cqid * queue_size], &bad_wr);
 
-        /* step 2: update flags state */
-        pthread_mutex_lock(&inqueue->flag_lock);
-        inqueue->flags[Batchid] = 1;
+        /* step 2: add free_value and sub post_value */
+        atomic_fetch_sub(&(inqueue->free_value), BatchingSize);
+        atomic_fetch_add(&(inqueue->post_value), BatchingSize);
+
+        /* step 3: update inqueue->post */
+        pthread_mutex_lock(&inqueue->post_lock);
         inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
-        pthread_mutex_unlock(&inqueue->flag_lock);
+        pthread_mutex_unlock(&inqueue->post_lock);
 
-        /* step 3: update Batchid to test */
-        Batchid = inqueue->post / BatchingSize;
     }
+    // while (inqueue->flags[Batchid] == 2) {
+    //     /* step 1: init new post recv */
+    //     init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
+
+    //     /* step 2: update flags state */
+    //     pthread_mutex_lock(&inqueue->flag_lock);
+    //     inqueue->flags[Batchid] = 1;
+    //     inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
+    //     pthread_mutex_unlock(&inqueue->flag_lock);
+
+    //     /* step 3: update Batchid to test */
+    //     Batchid = inqueue->post / BatchingSize;
+    // }
 
     return 0;
 }
@@ -122,13 +135,18 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
                 break;
             }
         } else {
-            /* step 1: update tail */
+            /* step 1: sub post_value and add busy_value */
+            if (atomic_load(&(inqueue->post_value)) <= 0) {
+                log_err("post value error <= 0");
+            }else{
+                atomic_fetch_sub(&(inqueue->post_value), 1);
+            }
+            atomic_fetch_add(&(inqueue->busy_value), 1);
+
+            /* step 2: update tail */
             pthread_mutex_lock(&inqueue->tail_lock);
             inqueue->tail = (inqueue->tail + 1) % QueueSize;
             pthread_mutex_unlock(&inqueue->tail_lock);
-
-            /* step 2: add busy_value to let server thread in */
-            atomic_fetch_add(&(inqueue->busy_value), 1);
         }
 
         check_flags(cqid);
@@ -168,6 +186,7 @@ void init_recv_wr(struct ibv_mr **mr, unsigned index) {
 }
 
 int init_listen_recv() {
+    
     /* step 1: init wr, sge, for rdma to recv */
     for (int j = 0; j < Maxhosts; j++) {
         if (j == jia_pid)
@@ -177,20 +196,27 @@ int init_listen_recv() {
         }
     } 
 
-    /* step 2: loop until ibv_post_recv wr successfully */
+    /* step 2: post recv wr */
     for (int j = 0; j < Maxhosts; j++) {
         if (j == jia_pid)
             continue;
+        
+        msg_queue_t *inqueue = ctx.connect_array[j].inqueue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
+            /* step 1: loop until ibv_post_recv wr successfully */
             while (
                 ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr)) {
                 log_err("Failed to post recv");
             }
 
-            /* update flags from 0 to 1 */
-            pthread_mutex_lock(&ctx.connect_array[j].inqueue->flag_lock);
-            ctx.connect_array[j].inqueue->flags[i / BatchingSize] = 1;
-            pthread_mutex_unlock(&ctx.connect_array[j].inqueue->flag_lock);
+            /* step 2: add free_value and sub post_value */
+            atomic_fetch_sub(&(inqueue->free_value), BatchingSize);
+            atomic_fetch_add(&(inqueue->post_value), BatchingSize);
+
+            /* step 3: update inqueue->post */
+            pthread_mutex_lock(&ctx.connect_array[j].inqueue->post_lock);
+            inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
+            pthread_mutex_unlock(&ctx.connect_array[j].inqueue->post_lock);
         }
     }
 

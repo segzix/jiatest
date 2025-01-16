@@ -1,5 +1,6 @@
 #include "msg_queue.h"
 #include "rdma_comm.h"
+#include "tools.h"
 #include <infiniband/verbs.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -28,21 +29,25 @@ void *rdma_server_thread(void *arg) {
             rdma_connect_t *tmp_connect = &ctx.connect_array[i];
             msg_queue_t *inqueue = tmp_connect->inqueue;
 
-            if(i == jia_pid)
+            if (i == jia_pid)
                 continue;
             if (atomic_load(&(ctx.connect_array[i].inqueue->busy_value)) > 0) {
 
                 /* step 1: handle msg and update head point, busy_value */
                 msg_handle((jia_msg_t *)(inqueue->queue[inqueue->head]));
-                inqueue->head = (inqueue->head + 1) % inqueue->size;
-                atomic_fetch_sub(&(inqueue->busy_value), 1);
 
-                /* step 2: update flags array */
-                if(!(inqueue->head % BatchingSize)){
-                    pthread_mutex_lock(&inqueue->flag_lock);
-                    inqueue->flags[(inqueue->head / BatchingSize)-1] = 1;
-                    pthread_mutex_unlock(&inqueue->flag_lock);
+                /* step 2: sub busy_value and add free_value */
+                if (atomic_load(&(inqueue->busy_value)) <= 0) {
+                    log_err("busy value error <= 0");
+                } else {
+                    atomic_fetch_sub(&(inqueue->busy_value), 1);
                 }
+                atomic_fetch_add(&(inqueue->free_value), 1);
+
+                /* step 2: update head */
+                pthread_mutex_lock(&inqueue->head_lock);
+                inqueue->head = (inqueue->head + 1) % inqueue->size;
+                pthread_mutex_unlock(&inqueue->head_lock);
             }
         }
     }
