@@ -92,4 +92,6 @@ void init_rdma_resource(struct jia_context *context);
  * @param ctx -- jiajia rdma context
  */
 void free_rdma_resources(struct jia_context *ctx);
+
+int check_flags(unsigned cqid);
 #endif

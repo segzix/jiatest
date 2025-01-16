@@ -20,12 +20,12 @@ unsigned queue_size = QueueSize;
 #define CQID(cq_ptr) (((void *)cq_ptr - (void *)ctx.connect_array) / sizeof(rdma_connect_t))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-static int check_flags(unsigned cqid) {
+int check_flags(unsigned cqid) {
     msg_queue_t *inqueue = ctx.connect_array[cqid].inqueue;
 
     if (atomic_load(&(inqueue->free_value)) >= BatchingSize) {
         log_info(3, "pre inqueue [post]: %d, [free_value]: %d [post_value]: %d", inqueue->post,
-                 inqueue->free_value, inqueue->post_value);
+                 atomic_load(&inqueue->free_value), atomic_load(&inqueue->post_value));
 
         /* step 1: new BatchingSize post recv */
         init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
@@ -44,7 +44,7 @@ static int check_flags(unsigned cqid) {
         pthread_mutex_unlock(&inqueue->post_lock);
 
         log_info(3, "after inqueue [post]: %d, [free_value]: %d [post_value]: %d", inqueue->post,
-                 inqueue->free_value, inqueue->post_value);
+                 atomic_load(&inqueue->free_value), atomic_load(&inqueue->post_value));
     }
     // while (inqueue->flags[Batchid] == 2) {
     //     /* step 1: init new post recv */
@@ -144,7 +144,7 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
             }
         } else {
             log_info(3, "pre inqueue [tail]: %d, [busy_value]: %d [post_value]: %d", inqueue->tail,
-                     inqueue->busy_value, inqueue->post_value);
+                     atomic_load(&inqueue->busy_value), atomic_load(&inqueue->post_value));
 
             /* step 1: sub post_value and add busy_value */
             if (atomic_load(&(inqueue->post_value)) <= 0) {
@@ -160,10 +160,10 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
             pthread_mutex_unlock(&inqueue->tail_lock);
 
             log_info(3, "after inqueue [tail]: %d, [busy_value]: %d [post_value]: %d",
-                     inqueue->tail, inqueue->busy_value, inqueue->post_value);
+                     inqueue->tail, atomic_load(&inqueue->busy_value), atomic_load(&inqueue->post_value));
         }
 
-        check_flags(cqid);
+        // check_flags(cqid);
 
         /* Similar to connection management events, we need to acknowledge CQ
          * events

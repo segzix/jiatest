@@ -61,7 +61,7 @@ int main()
         generate_random_string((char *)msg.data, SIZE);
         
         move_msg_to_outqueue(&msg, &outqueue);
-        sleep(2);
+        // sleep(2);
     }
 }
 
