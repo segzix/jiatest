@@ -8,7 +8,7 @@
 
 #define Maxhosts 2
 #define BatchingSize 8
-#define QueueSize 32
+#define QueueSize 16
 #define BatchingNum (QueueSize / BatchingSize)
 
 typedef struct rdma_connect {

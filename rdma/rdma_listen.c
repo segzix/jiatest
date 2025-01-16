@@ -174,8 +174,6 @@ int init_listen_recv() {
             continue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
             init_recv_wr(ctx.connect_array[j].in_mr, j * queue_size + i);
-            ctx.connect_array[j].inqueue->tail =
-                (ctx.connect_array[j].inqueue->tail + 1) % ctx.connect_array[j].inqueue->size;
         }
     } 
 
