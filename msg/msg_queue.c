@@ -1,8 +1,9 @@
 #include "msg_queue.h"
+#include "rdma_comm.h"
 #include "tools.h"
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdatomic.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define PAGESIZE 4096
 
@@ -18,6 +19,7 @@ int init_msg_queue(msg_queue_t *msg_queue, int size) {
 
     msg_queue->queue = (unsigned char **)malloc(sizeof(unsigned char *) * size);
 
+    /** step 2: allocate pagealigned memory for msg_queue->queue[] */
     for (int i = 0; i < size; i++) {
         ret = posix_memalign((void **)&msg_queue->queue[i], PAGESIZE, 40960);
         if (ret != 0) {
@@ -31,32 +33,40 @@ int init_msg_queue(msg_queue_t *msg_queue, int size) {
         return -1;
     }
 
-    /** step 2: init msg_queue */
+    /** step 3: init msg_queue */
     msg_queue->size = size;
     msg_queue->head = 0;
     msg_queue->tail = 0;
     atomic_init(&msg_queue->busy_value, 0);
     atomic_init(&msg_queue->free_value, size);
 
-    /** step 3: initialize head mutex and tail mutex */
+    /** step 4: initialize head mutex and tail mutex and flag_lock used to update flags */
     if (pthread_mutex_init(&(msg_queue->head_lock), NULL) != 0 ||
-        pthread_mutex_init(&(msg_queue->tail_lock), NULL) != 0) {
+        pthread_mutex_init(&(msg_queue->tail_lock), NULL) != 0 ||
+        pthread_mutex_init(&(msg_queue->flag_lock), NULL) != 0) {
         perror("msg_queue mutex init");
         goto mutex_fail;
     }
 
-    /** step 4: initialize semaphores (or atomic count)*/
+    /** step 5: initialize semaphores (or atomic count)*/
     if (sem_init(&(msg_queue->busy_count), 0, 0) != 0 ||
         sem_init(&(msg_queue->free_count), 0, size) != 0) {
         perror("msg_queue sem init");
         goto sem_fail;
     }
 
+    /** step 6: initialize msg_queue flags and post */
+    for (int i = 0; i < BatchingNum; i++) {
+        msg_queue->flags[i] = 0;
+    }
+    msg_queue->post = 0;
+
     return 0;
 
 sem_fail:
     pthread_mutex_destroy(&(msg_queue->head_lock));
     pthread_mutex_destroy(&(msg_queue->tail_lock));
+    pthread_mutex_destroy(&(msg_queue->flag_lock));
 mutex_fail:
     free(msg_queue->queue);
 
@@ -69,8 +79,8 @@ int enqueue(msg_queue_t *msg_queue, jia_msg_t *msg) {
 
     /* step 0: ensure which queue */
     if (msg_queue == NULL || msg == NULL) {
-        log_err("msg_queue or msg is NULL[msg_queue: %lx msg: %lx]",
-                (long unsigned)msg_queue, (long unsigned)msg);
+        log_err("msg_queue or msg is NULL[msg_queue: %lx msg: %lx]", (long unsigned)msg_queue,
+                (long unsigned)msg);
         return -1;
     }
     char *queue = (msg_queue == &outqueue) ? "outqueue" : "inqueue";
@@ -93,8 +103,8 @@ int enqueue(msg_queue_t *msg_queue, jia_msg_t *msg) {
         /* step 2.1: update tail pointer and memcpy */
         slot_index = msg_queue->tail;
         msg_queue->tail = (msg_queue->tail + 1) & (msg_queue->size - 1);
-        log_info(4, "%s current tail: %u thread write index: %u", queue,
-                 msg_queue->tail, slot_index);
+        log_info(4, "%s current tail: %u thread write index: %u", queue, msg_queue->tail,
+                 slot_index);
 
         memcpy(msg_queue->queue[slot_index], msg, sizeof(jia_msg_t)); // copy msg to slot
 
@@ -136,11 +146,11 @@ int dequeue(msg_queue_t *msg_queue, jia_msg_t *msg) {
         /* step 2.1: update head pointer and memcpy */
         slot_index = msg_queue->head;
         msg_queue->head = (msg_queue->head + 1) & (msg_queue->size - 1);
-        log_info(4, "%s current head: %u thread write index: %u", queue,
-                 msg_queue->head, slot_index);
+        log_info(4, "%s current head: %u thread write index: %u", queue, msg_queue->head,
+                 slot_index);
 
         memcpy(msg, msg_queue->queue[slot_index], sizeof(jia_msg_t)); // copy msg from slot
-        
+
         /* step 2.2: sem post free count */
         sem_post(&(msg_queue->free_count));
         sem_getvalue(&msg_queue->free_count, &semvalue);
@@ -154,9 +164,9 @@ int dequeue(msg_queue_t *msg_queue, jia_msg_t *msg) {
 
 void free_msg_queue(msg_queue_t *msg_queue) {
     if (msg_queue == NULL) {
-        return ;
+        return;
     }
-    
+
     // destory semaphores
     sem_destroy(&(msg_queue->busy_count));
     sem_destroy(&(msg_queue->free_count));
@@ -164,6 +174,13 @@ void free_msg_queue(msg_queue_t *msg_queue) {
     // destory head mutex and tail mutex
     pthread_mutex_destroy(&(msg_queue->head_lock));
     pthread_mutex_destroy(&(msg_queue->tail_lock));
+    pthread_mutex_destroy(&(msg_queue->flag_lock));
 
+    // free the queue space
+    for (int i = 0; i < msg_queue->size; i++) {
+        free(msg_queue->queue[i]);
+    }
+
+    // free the pointer array space
     free(msg_queue->queue);
 }

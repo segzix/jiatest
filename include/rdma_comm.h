@@ -20,8 +20,8 @@ typedef struct rdma_connect {
 
 typedef struct jia_context {
     struct ibv_context *context;
-	struct ibv_pd *pd;
-    struct ibv_comp_channel *comp_channel;
+    struct ibv_pd *pd;                      // common pd
+    struct ibv_comp_channel *comp_channel;  // common io completion channel
 
     // port related
     int ib_port;                   // ib port number
@@ -34,14 +34,13 @@ typedef struct jia_context {
     int batching_num; // post recv wr doorbell batching num
 
     // rdma connect
-	msg_queue_t   *outqueue;
+    msg_queue_t *outqueue;
     struct ibv_mr *out_mr[QueueSize];
     rdma_connect_t connect_array[Maxhosts];
 
     // connection parameters
     int tcp_port;              // tcp port number
-    pthread_t server_thread;   // server thread for connection from client on
-                               // other hosts
+    pthread_t server_thread;   // server thread for connection from client on other hosts
     pthread_t *client_threads; // client threads used to connect other hosts
 } jia_context_t;
 
@@ -81,11 +80,10 @@ void *rdma_server_thread(void *arg);
  */
 void init_rdma_context(struct jia_context *context, int batching_num);
 
-
 /**
  * @brief init_rdma_resource -- init rdma communication resources
- * 
- * @param context 
+ *
+ * @param context
  */
 void init_rdma_resource(struct jia_context *context);
 

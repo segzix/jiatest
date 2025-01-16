@@ -28,11 +28,13 @@ int post_send(rdma_connect_t *conn) {
         .num_sge = 1,
         .next = NULL,
         .opcode = IBV_WR_SEND,
-        .send_flags = IBV_SEND_SIGNALED,};
+        .send_flags = IBV_SEND_SIGNALED,
+    };
 
     /* step 2: loop until ibv_post_send wr successfully */
     jia_msg_t *msg_ptr = (jia_msg_t *)ctx.outqueue->queue[ctx.outqueue->head];
-    while (ibv_post_send(ctx.connect_array[msg_ptr->topid].id.qp, &wr, &bad_wr)) {
+    while (
+        ibv_post_send(ctx.connect_array[msg_ptr->topid].id.qp, &wr, &bad_wr)) {
         log_err("Failed to post send");
     }
 
@@ -40,13 +42,14 @@ int post_send(rdma_connect_t *conn) {
 
     /* step 3: check if we send the packet to fabric */
     while (1) {
-        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq, 1, &wc);
+        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq,
+                             1, &wc);
         if (ne < 0) {
             log_err("ibv_poll_cq failed");
             return -1;
-        }else if(ne == 0){
+        } else if (ne == 0) {
             continue;
-        }else{
+        } else {
             break;
         }
     }

@@ -93,10 +93,4 @@ static inline int open_logfile(char *filename) {
     return 0;
 }
 
-
-static inline void print_ibv_mr(struct ibv_mr *mr) {
-    log_info(3, "{addr: %p, length: %zu, handle: %d, lkey: %x, rkey: %x}", \
-            mr->addr, mr->length, mr->handle, mr->lkey, mr->rkey);
-}
-
 #endif  /* TOOLS_H */

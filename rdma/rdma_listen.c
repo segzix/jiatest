@@ -9,7 +9,6 @@
 
 void init_recv_wr(struct ibv_mr **mr, unsigned index);
 pthread_t rdma_listen_tid;
-extern struct rdma_cm_id rdma_id[Maxhosts];
 static struct ibv_recv_wr *bad_wr = NULL;
 static struct ibv_wc wc;
 struct ibv_sge sge_list[QueueSize * Maxhosts];
@@ -18,8 +17,7 @@ extern int jia_pid;
 
 unsigned queue_size = QueueSize;
 
-#define CQID(cq_ptr)                                                           \
-    (((void *)cq_ptr - (void *)ctx.connect_array) / sizeof(rdma_connect_t));
+#define CQID(cq_ptr) (((void *)cq_ptr - (void *)ctx.connect_array) / sizeof(rdma_connect_t))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
 static int check_flags(unsigned cqid) {
@@ -29,14 +27,12 @@ static int check_flags(unsigned cqid) {
     unsigned Batchid = inqueue->post / BatchingSize;
     while (inqueue->flags[Batchid] == 2) {
         /* step 1: init new post recv */
-        init_recv_wr(ctx.connect_array[cqid].in_mr,
-                     inqueue->post + cqid * queue_size);
+        init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
 
         /* step 2: update flags state */
         pthread_mutex_lock(&inqueue->flag_lock);
         inqueue->flags[Batchid] = 1;
-        inqueue->post =
-            (inqueue->post + BatchingSize) % QueueSize;
+        inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
         pthread_mutex_unlock(&inqueue->flag_lock);
 
         /* step 3: update Batchid to test */
@@ -54,12 +50,11 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
     int ret = -1;
     while (1) {
         /* We wait for the notification on the CQ channel */
-        ret = ibv_get_cq_event(
-            comp_channel, /* IO channel where we are expecting the notification
-                           */
-            &cq_ptr, /* which CQ has an activity. This should be the same as CQ
-                        we created before */
-            &context); /* Associated CQ user context, which we did set */
+        ret = ibv_get_cq_event(comp_channel, /* IO channel where we are expecting the notification
+                                              */
+                               &cq_ptr,   /* which CQ has an activity. This should be the same as CQ
+                                             we created before */
+                               &context); /* Associated CQ user context, which we did set */
         if (ret) {
             log_err("Failed to get next CQ event due to %d \n", -errno);
             return -errno;
@@ -82,21 +77,19 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
          * MUTEX conditional variables in pthread programming.
          */
         ret = ibv_poll_cq(cq_ptr /* the CQ, we got notification for */,
-                          1 /* number of remaining WC elements*/,
-                          &wc /* where to store */);
+                          1 /* number of remaining WC elements*/, &wc /* where to store */);
         if (ret < 0) {
             log_err("Failed to poll cq for wc due to %d \n", ret);
             /* ret is errno here */
             return ret;
-        }else if(ret == 0){
+        } else if (ret == 0) {
             continue;
         }
         log_info(3, "%d WC are completed \n", ret);
 
         /* Now we check validity and status of I/O work completions */
         if (wc.status != IBV_WC_SUCCESS) {
-            log_err("Work completion (WC) has error status: %s",
-                    ibv_wc_status_str(wc.status));
+            log_err("Work completion (WC) has error status: %s", ibv_wc_status_str(wc.status));
 
             switch (wc.status) {
             case IBV_WC_RNR_RETRY_EXC_ERR:
@@ -151,8 +144,7 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
 
 /** init BatchingSize num recv_wr */
 void init_recv_wr(struct ibv_mr **mr, unsigned index) {
-    unsigned limit =
-        min((BatchingSize), ((index / queue_size) + 1) * queue_size - index);
+    unsigned limit = min((BatchingSize), ((index / queue_size) + 1) * queue_size - index);
     /* 在当前这个id对应的wr_list中的序号 */
     unsigned rindex = (index % queue_size);
 
@@ -167,7 +159,7 @@ void init_recv_wr(struct ibv_mr **mr, unsigned index) {
     }
 
     int i;
-    for (i = 0; i < limit-1; i++) {
+    for (i = 0; i < limit - 1; i++) {
         wr_list[index + i].next = &wr_list[index + i + 1];
     }
     wr_list[index + i].next = NULL;
@@ -188,8 +180,7 @@ int init_listen_recv() {
             // wr_list[i].wr_id = ctx.inqueue->tail;   // use index as wr_id
             init_recv_wr(ctx.connect_array[j].in_mr, j * queue_size + i);
             ctx.connect_array[j].inqueue->tail =
-                (ctx.connect_array[j].inqueue->tail + 1) %
-                ctx.connect_array[j].inqueue->size;
+                (ctx.connect_array[j].inqueue->tail + 1) % ctx.connect_array[j].inqueue->size;
         }
     }
 
@@ -198,8 +189,8 @@ int init_listen_recv() {
         if (j == jia_pid)
             continue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
-            while (ibv_post_recv(ctx.connect_array[j].id.qp,
-                                 &wr_list[i + j * queue_size], &bad_wr)) {
+            while (
+                ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr)) {
                 log_err("Failed to post recv");
             }
 

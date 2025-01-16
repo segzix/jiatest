@@ -10,7 +10,7 @@ TabWidth: 2
 # 访问修饰符（public）等靠左对齐
 AccessModifierOffset: -4
 # 最大列宽度
-ColumnLimit: 80
+ColumnLimit: 100
 # 是否允许短的函数，语句块等单独一行
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortBlocksOnASingleLine: Empty
