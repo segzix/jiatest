@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #define Maxhosts 2
-#define BatchingSize 16
+#define BatchingSize 1
 #define QueueSize 16
 #define BatchingNum (QueueSize / BatchingSize)
 

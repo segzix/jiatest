@@ -49,7 +49,8 @@ int main()
 
 
     jia_msg_t msg;
-    while(1) {
+    int i = 8;
+    while(1 && i >= 1) {
         msg.op = WAIT;
         msg.frompid = jia_pid;
         msg.topid = to_pid;
@@ -61,7 +62,11 @@ int main()
         generate_random_string((char *)msg.data, SIZE);
         
         move_msg_to_outqueue(&msg, &outqueue);
-        sleep(2);
+        if (i == 1) {
+            sleep(2);
+            i = 4;
+        }
+        i--;
     }
 }
 
