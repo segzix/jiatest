@@ -95,4 +95,5 @@ void init_rdma_resource(struct jia_context *context);
 void free_rdma_resources(struct jia_context *ctx);
 
 int check_flags(unsigned cqid);
+int init_listen_recv();
 #endif

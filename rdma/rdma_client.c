@@ -17,6 +17,10 @@ int seq = 0;
 void printmsg(jia_msg_t *msg);
 
 int post_send(rdma_connect_t *conn) {
+    struct ibv_cq *cq_ptr = NULL;
+    void *context = NULL;
+    int ret = -1;
+
     /* step 1: init wr, sge, for rdma to send */
     struct ibv_sge sge = {.addr = (uint64_t)ctx.out_mr[ctx.outqueue->head]->addr,
                           .length = ctx.out_mr[ctx.outqueue->head]->length,
@@ -39,28 +43,27 @@ int post_send(rdma_connect_t *conn) {
 
     log_info(4, "post send wr successfully!");
 
-    struct ibv_cq *cq_ptr = NULL;
-    void *context = NULL;
-    int ret = -1;
-    /* step 3: check if we send the packet to fabric */
-    while (1) {
-        ret = ibv_get_cq_event(
-            ctx.send_comp_channel, /* IO channel where we are expecting the notification
-                                    */
-            &cq_ptr,               /* which CQ has an activity. This should be the same as CQ
-                                        we created before */
-            &context);             /* Associated CQ user context, which we did set */
-        if (ret) {
-            log_err("Failed to get next CQ event due to %d \n", -errno);
-            return -errno;
-        }
+    /* step 3: blocking get event */
+    ret = ibv_get_cq_event(
+        ctx.send_comp_channel, /* IO channel where we are expecting the notification
+                                */
+        &cq_ptr,               /* which CQ has an activity. This should be the same as CQ
+                                    we created before */
+        &context);             /* Associated CQ user context, which we did set */
+    if (ret) {
+        log_err("Failed to get next CQ event due to %d \n", -errno);
+        return -errno;
+    }
 
-        ret = ibv_req_notify_cq(cq_ptr, 0);
-        if (ret) {
-            log_err("Failed to request further notifications %d \n", -errno);
-            return -errno;
-        }
-        
+    /* step 4: notify cq to get event */
+    ret = ibv_req_notify_cq(cq_ptr, 0);
+    if (ret) {
+        log_err("Failed to request further notifications %d \n", -errno);
+        return -errno;
+    }
+
+    /* step 5: check if we send the packet to fabric */
+    while (1) {
         int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq, 1, &wc);
         if (ne < 0) {
             log_err("ibv_poll_cq failed");
@@ -72,7 +75,7 @@ int post_send(rdma_connect_t *conn) {
         }
     }
 
-    /* step 4: check wc.status */
+    /* step 6: check wc.status and ack event */
     if (wc.status != IBV_WC_SUCCESS) {
         log_err("Failed status %s (%d) for wr_id %d", ibv_wc_status_str(wc.status), wc.status,
                 (int)wc.wr_id);
@@ -81,6 +84,7 @@ int post_send(rdma_connect_t *conn) {
     ibv_ack_cq_events(cq_ptr, 
 		       1 /* we received one event notification. This is not 
 		       number of WC elements */);
+               
     return 0;
 }
 

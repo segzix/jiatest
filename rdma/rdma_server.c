@@ -19,6 +19,11 @@ extern rdma_connect_t connect_array[Maxhosts];
 void msg_handle(jia_msg_t *msg);
 
 void *rdma_server_thread(void *arg) {
+    int ret;
+    if ((ret = init_listen_recv())) {
+        log_err("init lisern recv error");
+    }
+
     while (1) {
         /* step 1: lock and enter inqueue to check if busy slot number is
          * greater than ctx.batching_num */

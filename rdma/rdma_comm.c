@@ -102,8 +102,8 @@ void *server_thread(void *arg) {
             // set QP attributes
             memset(&qp_attr, 0, sizeof(qp_attr));
             qp_attr.qp_context = NULL;
-            qp_attr.cap.max_send_wr = QueueSize;
-            qp_attr.cap.max_recv_wr = QueueSize;
+            qp_attr.cap.max_send_wr = QueueSize * 4;
+            qp_attr.cap.max_recv_wr = QueueSize * 4;
             qp_attr.cap.max_send_sge = 1;
             qp_attr.cap.max_recv_sge = 1;
             qp_attr.cap.max_inline_data = 88;
@@ -249,8 +249,8 @@ void *client_thread(void *arg) {
                 // set QP attribute
                 memset(&qp_attr, 0, sizeof(qp_attr));
                 qp_attr.qp_context = NULL;
-                qp_attr.cap.max_send_wr = QueueSize;
-                qp_attr.cap.max_recv_wr = QueueSize;
+                qp_attr.cap.max_send_wr = QueueSize * 4;
+                qp_attr.cap.max_recv_wr = QueueSize * 4;
                 qp_attr.cap.max_send_sge = 1;
                 qp_attr.cap.max_recv_sge = 1;
                 qp_attr.cap.max_inline_data = 64;

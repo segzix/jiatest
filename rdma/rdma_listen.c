@@ -201,6 +201,8 @@ void init_recv_wr(struct ibv_mr **mr, unsigned index) {
 
 int init_listen_recv() {
 
+    int ret;
+
     /* step 1: init wr, sge, for rdma to recv */
     for (int j = 0; j < Maxhosts; j++) {
         if (j == jia_pid)
@@ -219,7 +221,7 @@ int init_listen_recv() {
         for (int i = 0; i < queue_size; i += BatchingSize) {
             /* step 1: loop until ibv_post_recv wr successfully */
             while (
-                ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr)) {
+                (ret = ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr))) {
                 log_err("Failed to post recv");
             }
 
@@ -238,12 +240,6 @@ int init_listen_recv() {
 }
 
 void *rdma_listen_thread(void *arg) {
-    int ret;
-    ret = init_listen_recv();
-    if (ret != 0) {
-        log_err("init lisern recv error");
-    }
-
     post_recv(ctx.recv_comp_channel);
 
     return NULL;
