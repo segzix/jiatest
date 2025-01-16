@@ -29,8 +29,10 @@ static int check_flags(unsigned cqid) {
 
         /* step 1: new BatchingSize post recv */
         init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
-        ibv_post_recv(ctx.connect_array[cqid].id.qp, &wr_list[inqueue->post + cqid * queue_size],
-                      &bad_wr);
+        while (ibv_post_recv(ctx.connect_array[cqid].id.qp,
+                             &wr_list[inqueue->post + cqid * queue_size], &bad_wr)) {
+            log_err("Failed to post recv");
+        };
 
         /* step 2: add free_value and sub post_value */
         atomic_fetch_sub(&(inqueue->free_value), BatchingSize);
@@ -157,8 +159,8 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
             inqueue->tail = (inqueue->tail + 1) % QueueSize;
             pthread_mutex_unlock(&inqueue->tail_lock);
 
-            log_info(3, "after inqueue [tail]: %d, [busy_value]: %d [post_value]: %d", inqueue->tail,
-                     inqueue->busy_value, inqueue->post_value);
+            log_info(3, "after inqueue [tail]: %d, [busy_value]: %d [post_value]: %d",
+                     inqueue->tail, inqueue->busy_value, inqueue->post_value);
         }
 
         check_flags(cqid);
