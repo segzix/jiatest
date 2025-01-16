@@ -24,7 +24,8 @@ extern const char *server_ip;
 extern const char *client_ip;
 int batching_num = 8;
 long start_port = 40000;
-pthread_mutex_t comp_channel_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t recv_comp_channel_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t send_comp_channel_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t pd_mutex = PTHREAD_MUTEX_INITIALIZER;
 jia_context_t ctx;
 
@@ -88,10 +89,15 @@ void *server_thread(void *arg) {
             log_out(4, "Received Connect Request from host %d\n", client_id);
             
             // if the common completion channel is null, create it, otherwise use it directly
-            pthread_mutex_lock(&comp_channel_mutex);
-            if (ctx.comp_channel == NULL)
-                ctx.comp_channel = ibv_create_comp_channel(event->id->verbs);
-            pthread_mutex_unlock(&comp_channel_mutex);
+            pthread_mutex_lock(&recv_comp_channel_mutex);
+            if (ctx.recv_comp_channel == NULL)
+                ctx.recv_comp_channel = ibv_create_comp_channel(event->id->verbs);
+            pthread_mutex_unlock(&recv_comp_channel_mutex);
+
+            pthread_mutex_lock(&send_comp_channel_mutex);
+            if (ctx.send_comp_channel == NULL)
+                ctx.send_comp_channel = ibv_create_comp_channel(event->id->verbs);
+            pthread_mutex_unlock(&send_comp_channel_mutex);
 
             // set QP attributes
             memset(&qp_attr, 0, sizeof(qp_attr));
@@ -104,9 +110,9 @@ void *server_thread(void *arg) {
             qp_attr.qp_type = IBV_QPT_RC;
             // there, we use ctx.connect_array[client_id] as cq_context, which will be catched by ibv_get_cq_event
             qp_attr.send_cq = ibv_create_cq(event->id->verbs, QueueSize,
-                                            &(ctx.connect_array[client_id]), ctx.comp_channel, 0);
+                                            &(ctx.connect_array[client_id]), ctx.send_comp_channel, 0);
             qp_attr.recv_cq = ibv_create_cq(event->id->verbs, QueueSize,
-                                            &(ctx.connect_array[client_id]), ctx.comp_channel, 0);
+                                            &(ctx.connect_array[client_id]), ctx.recv_comp_channel, 0);
 
             // request completion notification on send_cq and recv_cq
             ibv_req_notify_cq(qp_attr.send_cq, 0);
@@ -230,10 +236,15 @@ void *client_thread(void *arg) {
                 break;
 
             case RDMA_CM_EVENT_ROUTE_RESOLVED: /** step 5: initiate a connection */
-                pthread_mutex_lock(&comp_channel_mutex);
-                if (ctx.comp_channel == NULL)
-                    ctx.comp_channel = ibv_create_comp_channel(event->id->verbs);
-                pthread_mutex_unlock(&comp_channel_mutex);
+                pthread_mutex_lock(&recv_comp_channel_mutex);
+                if (ctx.recv_comp_channel == NULL)
+                    ctx.recv_comp_channel = ibv_create_comp_channel(event->id->verbs);
+                pthread_mutex_unlock(&recv_comp_channel_mutex);
+
+                pthread_mutex_lock(&send_comp_channel_mutex);
+                if (ctx.send_comp_channel == NULL)
+                    ctx.send_comp_channel = ibv_create_comp_channel(event->id->verbs);
+                pthread_mutex_unlock(&send_comp_channel_mutex);
 
                 // set QP attribute
                 memset(&qp_attr, 0, sizeof(qp_attr));
@@ -247,10 +258,10 @@ void *client_thread(void *arg) {
                 // there, we use ctx.connect_array[client_id] as cq_context, which will be catched by ibv_get_cq_event
                 qp_attr.send_cq =
                     ibv_create_cq(event->id->verbs, QueueSize, &(ctx.connect_array[target_host]),
-                                  ctx.comp_channel, 0);
+                                  ctx.send_comp_channel, 0);
                 qp_attr.recv_cq =
                     ibv_create_cq(event->id->verbs, QueueSize, &(ctx.connect_array[target_host]),
-                                  ctx.comp_channel, 0);
+                                  ctx.recv_comp_channel, 0);
 
                 // request completion notification on send_cq and recv_cq
                 ibv_req_notify_cq(qp_attr.send_cq, 0);

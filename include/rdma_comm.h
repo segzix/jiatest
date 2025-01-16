@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #define Maxhosts 2
-#define BatchingSize 8
+#define BatchingSize 16
 #define QueueSize 16
 #define BatchingNum (QueueSize / BatchingSize)
 
@@ -21,7 +21,8 @@ typedef struct rdma_connect {
 typedef struct jia_context {
     struct ibv_context *context;
     struct ibv_pd *pd;                      // common pd
-    struct ibv_comp_channel *comp_channel;  // common io completion channel
+    struct ibv_comp_channel *recv_comp_channel;  // common recv io completion channel
+    struct ibv_comp_channel *send_comp_channel;
 
     // port related
     int ib_port;                   // ib port number

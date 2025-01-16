@@ -244,7 +244,7 @@ void *rdma_listen_thread(void *arg) {
         log_err("init lisern recv error");
     }
 
-    post_recv(ctx.comp_channel);
+    post_recv(ctx.recv_comp_channel);
 
     return NULL;
 }

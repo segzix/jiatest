@@ -33,17 +33,35 @@ int post_send(rdma_connect_t *conn) {
 
     /* step 2: loop until ibv_post_send wr successfully */
     jia_msg_t *msg_ptr = (jia_msg_t *)ctx.outqueue->queue[ctx.outqueue->head];
-    while (
-        ibv_post_send(ctx.connect_array[msg_ptr->topid].id.qp, &wr, &bad_wr)) {
+    while (ibv_post_send(ctx.connect_array[msg_ptr->topid].id.qp, &wr, &bad_wr)) {
         log_err("Failed to post send");
     }
 
     log_info(4, "post send wr successfully!");
 
+    struct ibv_cq *cq_ptr = NULL;
+    void *context = NULL;
+    int ret = -1;
     /* step 3: check if we send the packet to fabric */
     while (1) {
-        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq,
-                             1, &wc);
+        ret = ibv_get_cq_event(
+            ctx.send_comp_channel, /* IO channel where we are expecting the notification
+                                    */
+            &cq_ptr,               /* which CQ has an activity. This should be the same as CQ
+                                        we created before */
+            &context);             /* Associated CQ user context, which we did set */
+        if (ret) {
+            log_err("Failed to get next CQ event due to %d \n", -errno);
+            return -errno;
+        }
+
+        ret = ibv_req_notify_cq(cq_ptr, 0);
+        if (ret) {
+            log_err("Failed to request further notifications %d \n", -errno);
+            return -errno;
+        }
+        
+        int ne = ibv_poll_cq(ctx.connect_array[msg_ptr->topid].id.qp->send_cq, 1, &wc);
         if (ne < 0) {
             log_err("ibv_poll_cq failed");
             return -1;
@@ -56,11 +74,13 @@ int post_send(rdma_connect_t *conn) {
 
     /* step 4: check wc.status */
     if (wc.status != IBV_WC_SUCCESS) {
-        log_err("Failed status %s (%d) for wr_id %d",
-                ibv_wc_status_str(wc.status), wc.status, (int)wc.wr_id);
+        log_err("Failed status %s (%d) for wr_id %d", ibv_wc_status_str(wc.status), wc.status,
+                (int)wc.wr_id);
         return -1;
     }
-
+    ibv_ack_cq_events(cq_ptr, 
+		       1 /* we received one event notification. This is not 
+		       number of WC elements */);
     return 0;
 }
 
@@ -69,13 +89,11 @@ void *rdma_client_thread(void *arg) {
         /* step 0: get sem value to print */
         int semvalue;
         sem_getvalue(&ctx.outqueue->busy_count, &semvalue);
-        log_info(4, "pre client outqueue dequeue busy_count value: %d",
-                 semvalue);
+        log_info(4, "pre client outqueue dequeue busy_count value: %d", semvalue);
         // wait for busy slot
         sem_wait(&ctx.outqueue->busy_count);
         sem_getvalue(&ctx.outqueue->busy_count, &semvalue);
-        log_info(4, "enter client outqueue dequeue! busy_count value: %d",
-                 semvalue);
+        log_info(4, "enter client outqueue dequeue! busy_count value: %d", semvalue);
 
         /* step 1: give seqno */
         msg_ptr = (jia_msg_t *)(ctx.outqueue->queue[ctx.outqueue->head]);
@@ -91,12 +109,11 @@ void *rdma_client_thread(void *arg) {
         /* step 4: sem post and print value */
         sem_post(&ctx.outqueue->free_count);
         sem_getvalue(&ctx.outqueue->free_count, &semvalue);
-        log_info(4, "after client outqueue dequeue free_count value: %d",
-                 semvalue);
+        log_info(4, "after client outqueue dequeue free_count value: %d", semvalue);
     }
 }
 
 void printmsg(jia_msg_t *msg) {
-    printf("msg <from:%d, to:%d, seq:%d, data:%s> \n", msg->frompid, msg->topid,
-           msg_ptr->seqno, msg_ptr->data);
+    printf("msg <from:%d, to:%d, seq:%d, data:%s> \n", msg->frompid, msg->topid, msg_ptr->seqno,
+           msg_ptr->data);
 }

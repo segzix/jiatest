@@ -61,7 +61,7 @@ int main()
         generate_random_string((char *)msg.data, SIZE);
         
         move_msg_to_outqueue(&msg, &outqueue);
-        // sleep(2);
+        //sleep(2);
     }
 }
 
@@ -98,16 +98,18 @@ void sync_connection(int total_hosts, int jia_pid) {
 void generate_random_string(char *dest, size_t length) {
     const char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"; // 字符集
     size_t charset_size = sizeof(charset) - 1; // 不包括末尾的 '\0'
+    struct timespec ts;
 
-    // 获取时间和进程 ID 作为种子
-    srand((unsigned int)(time(NULL) ^ getpid()));
-
-    // 生成随机字符串并存储到 dest 中
-    for (size_t i = 0; i < length - 1; ++i) { // 留出最后一个字符的位置给 '\0'
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    
+    // 组合纳秒和进程ID作为种子
+    unsigned int seed = (unsigned int)((ts.tv_sec * 1000000000ULL + ts.tv_nsec) ^ getpid());
+    srand((unsigned int)(seed ^ getpid()));
+    
+    for (size_t i = 0; i < length - 1; ++i) {
         dest[i] = charset[rand() % charset_size];
     }
-
-    dest[length - 1] = '\0'; // 添加字符串结束符
+    dest[length - 1] = '\0';
     log_out(3, "generate string: %s", dest);
 }
 
