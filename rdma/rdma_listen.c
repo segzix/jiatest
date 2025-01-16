@@ -23,10 +23,14 @@ unsigned queue_size = QueueSize;
 static int check_flags(unsigned cqid) {
     msg_queue_t *inqueue = ctx.connect_array[cqid].inqueue;
 
-    if(atomic_load(&(inqueue->free_value)) >= BatchingSize){
+    if (atomic_load(&(inqueue->free_value)) >= BatchingSize) {
+        log_info(3, "pre inqueue [post]: %d, [free_value]: %d [post_value]: %d", inqueue->post,
+                 inqueue->free_value, inqueue->post_value);
+
         /* step 1: new BatchingSize post recv */
         init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
-        ibv_post_recv(ctx.connect_array[cqid].id.qp, &wr_list[inqueue->post + cqid * queue_size], &bad_wr);
+        ibv_post_recv(ctx.connect_array[cqid].id.qp, &wr_list[inqueue->post + cqid * queue_size],
+                      &bad_wr);
 
         /* step 2: add free_value and sub post_value */
         atomic_fetch_sub(&(inqueue->free_value), BatchingSize);
@@ -37,6 +41,8 @@ static int check_flags(unsigned cqid) {
         inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
         pthread_mutex_unlock(&inqueue->post_lock);
 
+        log_info(3, "after inqueue [post]: %d, [free_value]: %d [post_value]: %d", inqueue->post,
+                 inqueue->free_value, inqueue->post_value);
     }
     // while (inqueue->flags[Batchid] == 2) {
     //     /* step 1: init new post recv */
@@ -135,10 +141,13 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
                 break;
             }
         } else {
+            log_info(3, "pre inqueue [tail]: %d, [busy_value]: %d [post_value]: %d", inqueue->tail,
+                     inqueue->busy_value, inqueue->post_value);
+
             /* step 1: sub post_value and add busy_value */
             if (atomic_load(&(inqueue->post_value)) <= 0) {
                 log_err("post value error <= 0");
-            }else{
+            } else {
                 atomic_fetch_sub(&(inqueue->post_value), 1);
             }
             atomic_fetch_add(&(inqueue->busy_value), 1);
@@ -147,6 +156,9 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
             pthread_mutex_lock(&inqueue->tail_lock);
             inqueue->tail = (inqueue->tail + 1) % QueueSize;
             pthread_mutex_unlock(&inqueue->tail_lock);
+
+            log_info(3, "after inqueue [tail]: %d, [busy_value]: %d [post_value]: %d", inqueue->tail,
+                     inqueue->busy_value, inqueue->post_value);
         }
 
         check_flags(cqid);
@@ -186,7 +198,7 @@ void init_recv_wr(struct ibv_mr **mr, unsigned index) {
 }
 
 int init_listen_recv() {
-    
+
     /* step 1: init wr, sge, for rdma to recv */
     for (int j = 0; j < Maxhosts; j++) {
         if (j == jia_pid)
@@ -194,13 +206,13 @@ int init_listen_recv() {
         for (int i = 0; i < queue_size; i += BatchingSize) {
             init_recv_wr(ctx.connect_array[j].in_mr, j * queue_size + i);
         }
-    } 
+    }
 
     /* step 2: post recv wr */
     for (int j = 0; j < Maxhosts; j++) {
         if (j == jia_pid)
             continue;
-        
+
         msg_queue_t *inqueue = ctx.connect_array[j].inqueue;
         for (int i = 0; i < queue_size; i += BatchingSize) {
             /* step 1: loop until ibv_post_recv wr successfully */

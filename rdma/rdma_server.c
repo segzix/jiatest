@@ -36,6 +36,9 @@ void *rdma_server_thread(void *arg) {
                 /* step 1: handle msg and update head point, busy_value */
                 msg_handle((jia_msg_t *)(inqueue->queue[inqueue->head]));
 
+                log_info(3, "pre inqueue [head]: %d, [busy_value]: %d [free_value]: %d",
+                         inqueue->head, inqueue->busy_value, inqueue->free_value);
+
                 /* step 2: sub busy_value and add free_value */
                 if (atomic_load(&(inqueue->busy_value)) <= 0) {
                     log_err("busy value error <= 0");
@@ -48,6 +51,9 @@ void *rdma_server_thread(void *arg) {
                 pthread_mutex_lock(&inqueue->head_lock);
                 inqueue->head = (inqueue->head + 1) % inqueue->size;
                 pthread_mutex_unlock(&inqueue->head_lock);
+
+                log_info(3, "after inqueue [head]: %d, [busy_value]: %d [free_value]: %d",
+                         inqueue->head, inqueue->busy_value, inqueue->free_value);
             }
         }
     }
