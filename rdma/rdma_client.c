@@ -14,9 +14,9 @@ static jia_msg_t *msg_ptr;
 int snd_seq[Maxhosts] = {0};
 int seq = 0;
 
-void printmsg(jia_msg_t *msg);
-
 int post_send(rdma_connect_t *conn) {
+    // TODO: we need to post different Send wr according to the msg's op
+
     struct ibv_cq *cq_ptr = NULL;
     void *context = NULL;
     int ret = -1;
@@ -49,7 +49,7 @@ int post_send(rdma_connect_t *conn) {
                                 */
         &cq_ptr,               /* which CQ has an activity. This should be the same as CQ
                                     we created before */
-        &context);             /* Associated CQ user context, which we did set */
+        &context);             /* Associated CQ user context, which we did set on create CQ */
     if (ret) {
         log_err("Failed to get next CQ event due to %d \n", -errno);
         return -errno;
@@ -84,7 +84,7 @@ int post_send(rdma_connect_t *conn) {
     ibv_ack_cq_events(cq_ptr, 
 		       1 /* we received one event notification. This is not 
 		       number of WC elements */);
-               
+
     return 0;
 }
 
@@ -104,7 +104,13 @@ void *rdma_client_thread(void *arg) {
         msg_ptr->seqno = snd_seq[msg_ptr->topid];
 
         /* step 2: post send mr */
-        post_send(&ctx.connect_array[msg_ptr->topid]);
+        while (post_send(&ctx.connect_array[msg_ptr->topid])) {
+            log_out(3, "msg <from:%d, to:%d, seq:%d, data:%s> send failed\n", msg_ptr->frompid,
+                    msg_ptr->topid, msg_ptr->seqno, msg_ptr->data);
+        }
+
+        log_out(3, "msg <from:%d, to:%d, seq:%d, data:%s> send successfully\n", msg_ptr->frompid,
+                msg_ptr->topid, msg_ptr->seqno, msg_ptr->data);
 
         /* step 3: update snd_seq and head ptr */
         snd_seq[msg_ptr->topid]++;
@@ -115,9 +121,4 @@ void *rdma_client_thread(void *arg) {
         sem_getvalue(&ctx.outqueue->free_count, &semvalue);
         log_info(4, "after client outqueue dequeue free_count value: %d", semvalue);
     }
-}
-
-void printmsg(jia_msg_t *msg) {
-    printf("msg <from:%d, to:%d, seq:%d, data:%s> \n", msg->frompid, msg->topid, msg_ptr->seqno,
-           msg_ptr->data);
 }

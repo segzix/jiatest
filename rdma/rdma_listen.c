@@ -15,8 +15,6 @@ struct ibv_sge sge_list[QueueSize * Maxhosts];
 struct ibv_recv_wr wr_list[QueueSize * Maxhosts];
 extern int jia_pid;
 
-unsigned queue_size = QueueSize;
-
 #define CQID(cq_ptr) (((void *)cq_ptr - (void *)ctx.connect_array) / sizeof(rdma_connect_t))
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
@@ -28,9 +26,9 @@ int check_flags(unsigned cqid) {
                  atomic_load(&inqueue->free_value), atomic_load(&inqueue->post_value));
 
         /* step 1: new BatchingSize post recv */
-        init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
+        init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * QueueSize);
         while (ibv_post_recv(ctx.connect_array[cqid].id.qp,
-                             &wr_list[inqueue->post + cqid * queue_size], &bad_wr)) {
+                             &wr_list[inqueue->post + cqid * QueueSize], &bad_wr)) {
             log_err("Failed to post recv");
         };
 
@@ -46,25 +44,11 @@ int check_flags(unsigned cqid) {
         log_info(3, "after inqueue [post]: %d, [free_value]: %d [post_value]: %d", inqueue->post,
                  atomic_load(&inqueue->free_value), atomic_load(&inqueue->post_value));
     }
-    // while (inqueue->flags[Batchid] == 2) {
-    //     /* step 1: init new post recv */
-    //     init_recv_wr(ctx.connect_array[cqid].in_mr, inqueue->post + cqid * queue_size);
-
-    //     /* step 2: update flags state */
-    //     pthread_mutex_lock(&inqueue->flag_lock);
-    //     inqueue->flags[Batchid] = 1;
-    //     inqueue->post = (inqueue->post + BatchingSize) % QueueSize;
-    //     pthread_mutex_unlock(&inqueue->flag_lock);
-
-    //     /* step 3: update Batchid to test */
-    //     Batchid = inqueue->post / BatchingSize;
-    // }
-
     return 0;
 }
 
 int post_recv(struct ibv_comp_channel *comp_channel) {
-    unsigned cqid;
+    unsigned int cqid;
     msg_queue_t *inqueue;
     struct ibv_cq *cq_ptr = NULL;
     void *context = NULL;
@@ -114,27 +98,27 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
 
             switch (wc.status) {
             case IBV_WC_RNR_RETRY_EXC_ERR:
-                // 接收端没有准备好，超过重试次数
+                // receive side is not ready and exceed the retry count
                 log_err("Remote endpoint not ready, retry exceeded\n");
                 break;
 
             case IBV_WC_RETRY_EXC_ERR:
-                // 传输重试超过限制
+                // sender exceed retry count
                 log_err("Transport retry count exceeded\n");
                 break;
 
             case IBV_WC_LOC_LEN_ERR:
-                // 本地长度错误
+                // local length error
                 log_err("Local length error\n");
                 break;
 
             case IBV_WC_LOC_QP_OP_ERR:
-                // QP操作错误
+                // QP operation error
                 log_err("Local QP operation error\n");
                 break;
 
             case IBV_WC_REM_ACCESS_ERR:
-                // 远程访问错误
+                // remote access error
                 log_err("Remote access error\n");
                 break;
 
@@ -176,9 +160,9 @@ int post_recv(struct ibv_comp_channel *comp_channel) {
 
 /** init BatchingSize num recv_wr */
 void init_recv_wr(struct ibv_mr **mr, unsigned index) {
-    unsigned limit = min((BatchingSize), ((index / queue_size) + 1) * queue_size - index);
+    unsigned limit = min((BatchingSize), ((index / QueueSize) + 1) * QueueSize - index);
     /* 在当前这个id对应的wr_list中的序号 */
-    unsigned rindex = (index % queue_size);
+    unsigned rindex = (index % QueueSize);
 
     /* step 1: init sge_list and wr_list */
     for (int i = 0; i < limit; i++) {
@@ -207,8 +191,8 @@ int init_listen_recv() {
     for (int j = 0; j < Maxhosts; j++) {
         if (j == jia_pid)
             continue;
-        for (int i = 0; i < queue_size; i += BatchingSize) {
-            init_recv_wr(ctx.connect_array[j].in_mr, j * queue_size + i);
+        for (int i = 0; i < QueueSize; i += BatchingSize) {
+            init_recv_wr(ctx.connect_array[j].in_mr, j * QueueSize + i);
         }
     }
 
@@ -218,10 +202,10 @@ int init_listen_recv() {
             continue;
 
         msg_queue_t *inqueue = ctx.connect_array[j].inqueue;
-        for (int i = 0; i < queue_size; i += BatchingSize) {
+        for (int i = 0; i < QueueSize; i += BatchingSize) {
             /* step 1: loop until ibv_post_recv wr successfully */
             while (
-                (ret = ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * queue_size], &bad_wr))) {
+                (ret = ibv_post_recv(ctx.connect_array[j].id.qp, &wr_list[i + j * QueueSize], &bad_wr))) {
                 log_err("Failed to post recv");
             }
 

@@ -70,7 +70,6 @@ mutex_fail:
 }
 
 int enqueue(msg_queue_t *msg_queue, jia_msg_t *msg) {
-    unsigned current_value;
     unsigned slot_index;
 
     /* step 0: ensure which queue */
@@ -116,7 +115,6 @@ int enqueue(msg_queue_t *msg_queue, jia_msg_t *msg) {
 }
 
 int dequeue(msg_queue_t *msg_queue, jia_msg_t *msg) {
-    unsigned current_value;
     unsigned slot_index;
 
     /* step 0: ensure which queue */

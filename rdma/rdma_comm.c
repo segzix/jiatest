@@ -87,7 +87,7 @@ void *server_thread(void *arg) {
             // get the private data(i.e. id) from client
             client_id = *(int *)event->param.conn.private_data;
             log_out(4, "Received Connect Request from host %d\n", client_id);
-            
+
             // if the common completion channel is null, create it, otherwise use it directly
             pthread_mutex_lock(&recv_comp_channel_mutex);
             if (ctx.recv_comp_channel == NULL)
@@ -108,11 +108,14 @@ void *server_thread(void *arg) {
             qp_attr.cap.max_recv_sge = 1;
             qp_attr.cap.max_inline_data = 88;
             qp_attr.qp_type = IBV_QPT_RC;
-            // there, we use ctx.connect_array[client_id] as cq_context, which will be catched by ibv_get_cq_event
-            qp_attr.send_cq = ibv_create_cq(event->id->verbs, QueueSize,
-                                            &(ctx.connect_array[client_id]), ctx.send_comp_channel, 0);
-            qp_attr.recv_cq = ibv_create_cq(event->id->verbs, QueueSize,
-                                            &(ctx.connect_array[client_id]), ctx.recv_comp_channel, 0);
+            // there, we use ctx.connect_array[client_id] as cq_context, which will be catched by
+            // ibv_get_cq_event
+            qp_attr.send_cq =
+                ibv_create_cq(event->id->verbs, QueueSize, &(ctx.connect_array[client_id]),
+                              ctx.send_comp_channel, 0);
+            qp_attr.recv_cq =
+                ibv_create_cq(event->id->verbs, QueueSize, &(ctx.connect_array[client_id]),
+                              ctx.recv_comp_channel, 0);
 
             // request completion notification on send_cq and recv_cq
             ibv_req_notify_cq(qp_attr.send_cq, 0);
@@ -132,9 +135,19 @@ void *server_thread(void *arg) {
                 memset(&conn_param, 0, sizeof(conn_param));
                 conn_param.private_data = &(jia_pid);
                 conn_param.private_data_len = sizeof(jia_pid);
-                conn_param.responder_resources = 4;
-                conn_param.initiator_depth = 1;
-                conn_param.rnr_retry_count = 7;
+
+                // conn_param.responder_resources = 4;
+                // conn_param.initiator_depth = 1;
+                // conn_param.rnr_retry_count = 7;
+                conn_param.responder_resources = 8; // 可同时处理 2 个 RDMA Read
+                conn_param.initiator_depth = 8;     // 可以发起 2 个并发的 RDMA Read
+                conn_param.flow_control = 1;        // 启用流控
+                conn_param.retry_count = 7;         // 发送重传 7 次
+                conn_param.rnr_retry_count = 7;     // RNR 重传 7 次
+
+                // don't use SRQ, use QP num that allocated by system
+                conn_param.srq = 0;
+                conn_param.qp_num = 0;
 
                 // accept the connect
                 ret = rdma_accept(event->id, &conn_param);
@@ -147,7 +160,7 @@ void *server_thread(void *arg) {
         case RDMA_CM_EVENT_ESTABLISHED:
             log_out(4, "Host %d: Connection established\n", jia_pid);
 
-            // update the connection status 
+            // update the connection status
             ctx.connect_array[client_id].connected = true;
             ctx.connect_array[client_id].id = *(event->id);
             completion_num++;
@@ -181,7 +194,7 @@ cleanup:
 }
 
 void *client_thread(void *arg) {
-    int target_host = *(int *)arg;
+    int server_id = *(int *)arg;
     struct rdma_cm_id *id = NULL;
     struct rdma_event_channel *ec = NULL;
     struct sockaddr_in addr;
@@ -197,7 +210,7 @@ void *client_thread(void *arg) {
     ec = rdma_create_event_channel();
     if (!ec) {
         fprintf(stderr, "Host %d: Failed to create event channel for client[%d]\n", jia_pid,
-                target_host);
+                server_id);
         return NULL;
     }
 
@@ -208,19 +221,18 @@ void *client_thread(void *arg) {
         ret = rdma_create_id(ec, &id, NULL, RDMA_PS_TCP);
         if (ret) {
             fprintf(stderr, "Host %d: Failed to create RDMA CM ID for client[%d]\n", jia_pid,
-                    target_host);
+                    server_id);
             goto cleanup;
         }
 
         /** step 3: resolve the dest's addr */
         memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
-        addr.sin_port = htons(start_port + target_host);
+        addr.sin_port = htons(start_port + server_id);
         addr.sin_addr.s_addr = inet_addr(client_ip);
         ret = rdma_resolve_addr(id, NULL, (struct sockaddr *)&addr, 2000);
         if (ret) {
-            fprintf(stderr, "Host %d: Failed to resolve address for host %d\n", jia_pid,
-                    target_host);
+            fprintf(stderr, "Host %d: Failed to resolve address for host %d\n", jia_pid, server_id);
             goto cleanup;
         }
 
@@ -255,12 +267,13 @@ void *client_thread(void *arg) {
                 qp_attr.cap.max_recv_sge = 1;
                 qp_attr.cap.max_inline_data = 64;
                 qp_attr.qp_type = IBV_QPT_RC;
-                // there, we use ctx.connect_array[client_id] as cq_context, which will be catched by ibv_get_cq_event
+                // there, we use ctx.connect_array[client_id] as cq_context, which will be catched
+                // by ibv_get_cq_event
                 qp_attr.send_cq =
-                    ibv_create_cq(event->id->verbs, QueueSize, &(ctx.connect_array[target_host]),
+                    ibv_create_cq(event->id->verbs, QueueSize * 4, &(ctx.connect_array[server_id]),
                                   ctx.send_comp_channel, 0);
                 qp_attr.recv_cq =
-                    ibv_create_cq(event->id->verbs, QueueSize, &(ctx.connect_array[target_host]),
+                    ibv_create_cq(event->id->verbs, QueueSize * 4, &(ctx.connect_array[server_id]),
                                   ctx.recv_comp_channel, 0);
 
                 // request completion notification on send_cq and recv_cq
@@ -280,11 +293,10 @@ void *client_thread(void *arg) {
                     memset(&conn_param, 0, sizeof(conn_param));
                     conn_param.private_data = &jia_pid;
                     conn_param.private_data_len = sizeof(jia_pid);
-                    conn_param.initiator_depth = 1;
 
                     // set resource parameters
-                    conn_param.responder_resources = 2; // 可同时处理 2 个 RDMA Read
-                    conn_param.initiator_depth = 2;     // 可以发起 2 个并发的 RDMA Read
+                    conn_param.responder_resources = 8; // 可同时处理 2 个 RDMA Read
+                    conn_param.initiator_depth = 8;     // 可以发起 2 个并发的 RDMA Read
                     conn_param.flow_control = 1;        // 启用流控
                     conn_param.retry_count = 7;         // 发送重传 7 次
                     conn_param.rnr_retry_count = 7;     // RNR 重传 7 次
@@ -298,10 +310,11 @@ void *client_thread(void *arg) {
                 break;
 
             case RDMA_CM_EVENT_REJECTED: /** step 5.5: connect rejected, reconnect */
-                // when client try to connect, but no corresponding server exists, trigger this event
-                log_out(4, "[%d]Connect to host %d failed, event: %s", retry_count, target_host,
-                       rdma_event_str(event->event));
-                
+                // when client try to connect, but no corresponding server exists, trigger this
+                // event
+                log_out(4, "[%d]Connect to host %d failed, event: %s", retry_count, server_id,
+                        rdma_event_str(event->event));
+
                 // retry or not
                 if (retry_count < MAX_RETRY) {
                     retry_count++;
@@ -315,10 +328,10 @@ void *client_thread(void *arg) {
 
             case RDMA_CM_EVENT_ESTABLISHED: /** step 6: connection establishted */
                 log_out(4, "\nAfter retried %d connect, Host %d: Connected to host %d\n",
-                       retry_count, jia_pid, target_host);
-                ctx.connect_array[target_host].connected = true;
-                ctx.connect_array[target_host].id = *(event->id);
-            
+                        retry_count, jia_pid, server_id);
+                ctx.connect_array[server_id].connected = true;
+                ctx.connect_array[server_id].id = *(event->id);
+
             case RDMA_CM_EVENT_UNREACHABLE:
             case RDMA_CM_EVENT_DISCONNECTED:
                 goto cleanup;
@@ -397,6 +410,8 @@ void free_rdma_resources(struct jia_context *ctx) {
     }
 
     for (int i = 0; i < Maxhosts; i++) {
+        if (i == jia_pid)
+            continue;
         for (int j = 0; j < QueueSize; j++) {
             ibv_dereg_mr(ctx->connect_array[i].in_mr[j]);
         }

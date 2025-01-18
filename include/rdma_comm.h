@@ -94,6 +94,15 @@ void init_rdma_resource(struct jia_context *context);
  */
 void free_rdma_resources(struct jia_context *ctx);
 
+/**
+ * @brief check_flags -- check if the inqueue can be posted recv wrs again
+ * @param cqid -- id of the connection (include private inqueue )
+ */
 int check_flags(unsigned cqid);
+
+
+/**
+ * @brief init_listen_recv -- post all recv wrs of all inqueues initially
+ */
 int init_listen_recv();
 #endif

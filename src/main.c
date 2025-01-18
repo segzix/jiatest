@@ -62,11 +62,11 @@ int main()
         generate_random_string((char *)msg.data, SIZE);
         
         move_msg_to_outqueue(&msg, &outqueue);
-        if (i == 1) {
-            sleep(2);
-            i = 4;
-        }
-        i--;
+        // if (i == 1) {
+        //     sleep(2);
+        //     i = 4;
+        // }
+        // i--;
     }
 }
 
@@ -109,13 +109,13 @@ void generate_random_string(char *dest, size_t length) {
     
     // 组合纳秒和进程ID作为种子
     unsigned int seed = (unsigned int)((ts.tv_sec * 1000000000ULL + ts.tv_nsec) ^ getpid());
-    srand((unsigned int)(seed ^ getpid()));
+    srand((unsigned int)(seed));
     
     for (size_t i = 0; i < length - 1; ++i) {
         dest[i] = charset[rand() % charset_size];
     }
     dest[length - 1] = '\0';
-    log_out(3, "generate string: %s", dest);
+    log_out(4, "generate string: %s", dest);
 }
 
 int move_msg_to_outqueue(jia_msg_t *msg, msg_queue_t *outqueue) {
